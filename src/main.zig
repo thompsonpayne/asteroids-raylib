@@ -7,13 +7,36 @@ const Ship = struct {
     rotation: f32, // direction facing (degree)
 };
 
+const Bullet = struct {
+    active: bool,
+    position: rl.Vector2,
+    velocity: rl.Vector2,
+    life_time: f32, // seconds to live
+};
+
+const MAX_BULLETS = 50;
+const BULLET_SPEED = 500.0;
+const BULLET_LIFE = 1.5; // seconds
+
 const ROTATION_SPEED: f32 = 300.0; // degree per second
 const ACCELERATION: f32 = 400.0;
 const DRAG: f32 = 0.98; // friction (slow down 2% every frame)
+
 const SCREEN_WIDTH = 800;
 const SCREEN_HEIGHT = 450;
 
 pub fn main() !void {
+    var bullets: [MAX_BULLETS]Bullet = undefined;
+
+    for (0..MAX_BULLETS) |i| {
+        bullets[i] = Bullet{
+            .active = false,
+            .position = rl.Vector2{ .x = 0, .y = 0 },
+            .velocity = rl.Vector2{ .x = 0, .y = 0 },
+            .life_time = 0,
+        };
+    }
+
     rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Game example");
     defer rl.closeWindow();
 
@@ -25,6 +48,7 @@ pub fn main() !void {
         .velocity = .{ .x = 0, .y = 0 },
     };
 
+    // NOTE: Game loop here
     while (!rl.windowShouldClose()) {
         const dt = rl.getFrameTime();
 
@@ -73,7 +97,49 @@ pub fn main() !void {
         drawShip(ship.position, ship.rotation);
 
         if (rl.isKeyPressed(.space)) {
-            // shooting
+            // NOTE: shooting
+            blk: for (0..MAX_BULLETS) |i| {
+                var bullet = &bullets[i];
+
+                if (!bullet.active) {
+                    // wake bullet up
+                    bullet.active = true;
+                    bullet.life_time = BULLET_LIFE;
+
+                    bullet.position = ship.position;
+
+                    const rads = ship.rotation * (std.math.pi / 180.0);
+                    bullet.velocity.x = (std.math.cos(rads) * BULLET_SPEED) + ship.velocity.x;
+                    bullet.velocity.y = (std.math.sin(rads) * BULLET_SPEED) + ship.velocity.y;
+                    break :blk;
+                }
+            }
+        }
+
+        for (0..MAX_BULLETS) |i| {
+            var bullet = &bullets[i];
+
+            if (bullet.active) {
+                // Move
+                bullet.position.x += bullet.velocity.x * dt;
+                bullet.position.y += bullet.velocity.y * dt;
+
+                wrapObject(&bullet.position);
+
+                // age bullet
+                bullet.life_time -= dt;
+
+                // kill if too old
+                if (bullet.life_time <= 0) {
+                    bullet.active = false;
+                }
+            }
+        }
+
+        for (bullets) |b| {
+            if (b.active) {
+                rl.drawCircleV(b.position, 2.0, .ray_white);
+            }
         }
 
         rl.clearBackground(.black);
