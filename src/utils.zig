@@ -1,6 +1,7 @@
 const rl = @import("raylib");
 
 pub const MAX_BULLETS = 50;
+pub const MAX_ASTEROIDS = 60;
 pub const BULLET_SPEED = 500.0;
 pub const BULLET_LIFE = 1.5; // seconds
 
