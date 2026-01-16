@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
+const DRAG = utils.DRAG;
 const rand = std.crypto.random;
 const SPREAD_DEGREE = 360.0;
 
@@ -49,6 +50,30 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
 
             a.velocity = rl.Vector2{ .x = vx, .y = vy };
             break :blk;
+        }
+    }
+}
+
+pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
+    for (asteroids) |*a| {
+        if (a.active) {
+            const rads = a.rotation * (std.math.pi / 180.0);
+
+            const force_x = std.math.cos(rads) * 100.0 * dt;
+            const force_y = std.math.sin(rads) * 100.0 * dt;
+
+            a.velocity.x += force_x;
+            a.velocity.y += force_y;
+
+            a.position.x += a.velocity.x * dt;
+            a.position.y += a.velocity.y * dt;
+
+            a.velocity.x *= DRAG;
+            a.velocity.y *= DRAG;
+
+            utils.wrapObject(&a.position);
+
+            rl.drawCircleLinesV(a.position, a.radius, .white);
         }
     }
 }

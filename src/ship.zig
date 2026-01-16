@@ -127,7 +127,10 @@ pub const Ship = struct {
                 bullet.position.x += bullet.velocity.x * dt;
                 bullet.position.y += bullet.velocity.y * dt;
 
-                wrapObject(&bullet.position);
+                // bullet out of screen, kill bullet
+                if (bullet.position.y > SCREEN_HEIGHT or bullet.position.y < 0 or bullet.position.x > SCREEN_WIDTH or bullet.position.x < 0) {
+                    bullet.active = false;
+                }
 
                 // age bullet
                 bullet.life_time -= dt;
@@ -173,6 +176,19 @@ pub const Ship = struct {
         for (bullets) |b| {
             if (b.active) {
                 rl.drawCircleV(b.position, 2.0, .ray_white);
+            }
+        }
+    }
+
+    pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid) void {
+        for (asteroids) |a| {
+            // TODO: add ship radius config
+            if (rl.checkCollisionCircles(self.position, 15.0, a.position, a.radius)) {
+                self.position.x = 400;
+                self.position.y = 300;
+
+                self.velocity.x = 0;
+                self.velocity.y = 0;
             }
         }
     }
