@@ -44,8 +44,6 @@ pub fn main() !void {
 
         ship.handleMovement(dt);
 
-        wrapObject(&ship.position);
-
         ship.draw();
 
         // draw asteroids
@@ -65,19 +63,8 @@ pub fn main() !void {
                 a.velocity.x *= DRAG;
                 a.velocity.y *= DRAG;
 
-                if (a.position.x > SCREEN_WIDTH) {
-                    a.position.x = 0;
-                } else if (a.position.x < 0) {
-                    a.position.x = SCREEN_WIDTH;
-                }
+                wrapObject(&a.position);
 
-                if (a.position.y > SCREEN_HEIGHT) {
-                    a.position.y = 0;
-                } else if (a.position.y < 0) {
-                    a.position.y = SCREEN_HEIGHT;
-                }
-
-                // a.rotation += dt * 20.0 * rand_offset;
                 rl.drawCircleLinesV(a.position, a.radius, .white);
             }
         }

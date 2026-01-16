@@ -94,17 +94,7 @@ pub const Ship = struct {
         ship.velocity.x *= DRAG;
         ship.velocity.y *= DRAG;
 
-        if (ship.position.x > SCREEN_WIDTH) {
-            ship.position.x = 0;
-        } else if (ship.position.x < 0) {
-            ship.position.x = SCREEN_WIDTH;
-        }
-
-        if (ship.position.y > SCREEN_HEIGHT) {
-            ship.position.y = 0;
-        } else if (ship.position.y < 0) {
-            ship.position.y = SCREEN_HEIGHT;
-        }
+        wrapObject(&ship.position);
     }
 
     pub fn handleShooting(ship: *Ship, bullets: *[MAX_BULLETS]Bullet, asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
