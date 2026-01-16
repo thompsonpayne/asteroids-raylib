@@ -5,6 +5,7 @@ const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const DRAG = utils.DRAG;
 const rand = std.crypto.random;
 const SPREAD_DEGREE = 360.0;
+const INIT_ASTEROIDS = utils.INIT_ASTEROIDS;
 
 pub const Asteroid = struct {
     active: bool,
@@ -21,7 +22,7 @@ pub fn initAsteroids() [MAX_ASTEROIDS]Asteroid {
         asteroids[i].active = false;
     }
 
-    for (0..10) |_| {
+    for (0..INIT_ASTEROIDS) |_| {
         const rand_x = @as(f32, @floatFromInt(rl.getRandomValue(0, 800)));
         const rand_y = @as(f32, @floatFromInt(rl.getRandomValue(0, 600)));
 
@@ -93,16 +94,17 @@ pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid) void {
 
                 const overlap = (a1.radius + a2.radius) - distance;
 
-                // normalize vector
+                // normalize vector (we need direction, not magnitude)
                 const normal = rl.Vector2.normalize(delta);
 
-                // PUSH APART
-                // Create a vector of half the overlap length in the direction of collision
+                // NOTE: push apart handling
+                // create a vector of half the overlap length in the direction of collision
                 const push_vector = rl.Vector2.scale(normal, overlap * 0.5);
                 a1.position = rl.Vector2.add(a1.position, push_vector);
                 a2.position = rl.Vector2.subtract(a2.position, push_vector);
 
-                // BOUNCE
+                // NOTE: bounce handling
+                // how fast along the collision axis
                 const relative_vel = rl.Vector2.subtract(a1.velocity, a2.velocity);
 
                 const vel_normal = rl.Vector2.dotProduct(relative_vel, normal);

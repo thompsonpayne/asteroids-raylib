@@ -14,8 +14,8 @@ pub const Bullet = struct {
         for (0..MAX_BULLETS) |i| {
             bullets[i] = Bullet{
                 .active = false,
-                .position = rl.Vector2{ .x = 0, .y = 0 },
-                .velocity = rl.Vector2{ .x = 0, .y = 0 },
+                .position = .{ .x = 0, .y = 0 },
+                .velocity = .{ .x = 0, .y = 0 },
                 .life_time = 0,
             };
         }

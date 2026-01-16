@@ -17,6 +17,7 @@ const BULLET_LIFE = utils.BULLET_LIFE;
 const BULLET_SPEED = utils.BULLET_SPEED;
 
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
+const SHIP_RADIUS = 15.0;
 const wrapObject = utils.wrapObject;
 
 pub const Ship = struct {
@@ -181,14 +182,41 @@ pub const Ship = struct {
     }
 
     pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid) void {
-        for (asteroids) |a| {
+        for (asteroids) |*a| {
             // TODO: add ship radius config
-            if (rl.checkCollisionCircles(self.position, 15.0, a.position, a.radius)) {
-                self.position.x = 400;
-                self.position.y = 300;
 
-                self.velocity.x = 0;
-                self.velocity.y = 0;
+            if (rl.checkCollisionCircles(self.position, 15.0, a.position, a.radius)) {
+                const delta = rl.Vector2.subtract(self.position, a.position);
+                const distance = rl.Vector2.length(delta);
+
+                const overlap = (SHIP_RADIUS + a.radius) - distance;
+
+                // normalize vector (we need direction, not magnitude)
+                const normal = rl.Vector2.normalize(delta);
+
+                // NOTE: push apart handling
+                // create a vector of half the overlap length in the direction of collision
+                const push_vector = rl.Vector2.scale(normal, overlap * 0.5);
+                self.position = rl.Vector2.add(self.position, push_vector);
+                a.position = rl.Vector2.subtract(a.position, push_vector);
+
+                // NOTE: bounce handling
+                // how fast along the collision axis
+                const relative_vel = rl.Vector2.subtract(self.velocity, a.velocity);
+
+                const vel_normal = rl.Vector2.dotProduct(relative_vel, normal);
+
+                if (vel_normal > 0) continue;
+
+                // calculate impulse
+                const restitution = 0.5;
+                var scale_factor = -(1.0 + restitution) * vel_normal;
+                scale_factor /= (1.0 / (SHIP_RADIUS * SHIP_RADIUS) + 1.0 / (a.radius * a.radius));
+
+                // apply impulse
+                const impulse = rl.Vector2.scale(normal, scale_factor);
+                self.velocity = rl.Vector2.add(self.velocity, rl.Vector2.scale(impulse, 1.0 / (SHIP_RADIUS * SHIP_RADIUS)));
+                a.velocity = rl.Vector2.subtract(a.velocity, rl.Vector2.scale(impulse, 1.0 / (a.radius * a.radius)));
             }
         }
     }
