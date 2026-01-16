@@ -1,11 +1,15 @@
+const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
+const rand = std.crypto.random;
+const SPREAD_DEGREE = 360.0;
 
 pub const Asteroid = struct {
     active: bool,
     position: rl.Vector2,
     velocity: rl.Vector2,
+    rotation: f32,
     radius: f32,
 };
 
@@ -34,6 +38,11 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
             a.active = true;
             a.position = pos;
             a.radius = size;
+
+            const rand_factor = rand.float(f32) * 2.0 - 1.0; // rand from -1 to 1
+            const rand_offset = rand_factor * SPREAD_DEGREE;
+
+            a.rotation = rand_offset;
 
             const vx = @as(f32, @floatFromInt(rl.getRandomValue(-100, 100)));
             const vy = @as(f32, @floatFromInt(rl.getRandomValue(-100, 100)));

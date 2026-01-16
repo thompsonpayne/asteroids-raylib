@@ -2,7 +2,10 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
 const bullet_mod = @import("bullet.zig");
+const asteroid_mod = @import("asteroid.zig");
+
 const Bullet = bullet_mod.Bullet;
+const Asteroid = asteroid_mod.Asteroid;
 
 const ROTATION_SPEED = utils.ROTATION_SPEED;
 const ACCELERATION = utils.ACCELERATION;
@@ -12,6 +15,8 @@ const DRAG = utils.DRAG;
 const MAX_BULLETS = utils.MAX_BULLETS;
 const BULLET_LIFE = utils.BULLET_LIFE;
 const BULLET_SPEED = utils.BULLET_SPEED;
+
+const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const wrapObject = utils.wrapObject;
 
 pub const Ship = struct {
@@ -36,7 +41,7 @@ pub const Ship = struct {
         const s = std.math.sin(rads);
         const c = std.math.cos(rads);
 
-        // 3. Rotate and Move each point
+        // Rotate and Move each point
         // Formula:
         // new_x = (x * cos) - (y * sin) + ship_x
         // new_y = (x * sin) + (y * cos) + ship_y
@@ -102,7 +107,7 @@ pub const Ship = struct {
         }
     }
 
-    pub fn handleShooting(ship: *Ship, bullets: []Bullet, dt: f32) void {
+    pub fn handleShooting(ship: *Ship, bullets: *[MAX_BULLETS]Bullet, asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
         if (rl.isKeyPressed(.space)) {
             // NOTE: shooting
             blk: for (0..MAX_BULLETS) |i| {
@@ -123,8 +128,9 @@ pub const Ship = struct {
             }
         }
 
-        for (0..MAX_BULLETS) |i| {
-            var bullet = &bullets[i];
+        // NOTE: bulelt vs asteroid collision
+        blk: for (0..MAX_BULLETS) |b_idx| {
+            var bullet = &bullets[b_idx];
 
             if (bullet.active) {
                 // Move
@@ -139,6 +145,37 @@ pub const Ship = struct {
                 // kill if too old
                 if (bullet.life_time <= 0) {
                     bullet.active = false;
+                }
+            }
+
+            for (0..MAX_ASTEROIDS) |a_idx| {
+                var asteroid = &asteroids[a_idx];
+
+                if (!asteroid.active) continue;
+
+                if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
+                    // bullet hit asteroid
+
+                    bullet.active = false;
+                    asteroid.active = false;
+
+                    if (asteroid.radius > 20.0) {
+                        const new_size = asteroid.radius / 2.0;
+
+                        asteroid_mod.spawn(
+                            asteroids,
+                            .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
+                            new_size,
+                        );
+
+                        asteroid_mod.spawn(
+                            asteroids,
+                            .{ .x = asteroid.position.x + 20, .y = asteroid.position.y + 20 },
+                            new_size,
+                        );
+                    }
+
+                    break :blk;
                 }
             }
         }
