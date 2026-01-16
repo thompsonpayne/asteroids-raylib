@@ -21,7 +21,7 @@ pub fn initAsteroids() [MAX_ASTEROIDS]Asteroid {
         asteroids[i].active = false;
     }
 
-    for (0..5) |_| {
+    for (0..10) |_| {
         const rand_x = @as(f32, @floatFromInt(rl.getRandomValue(0, 800)));
         const rand_y = @as(f32, @floatFromInt(rl.getRandomValue(0, 600)));
 
@@ -74,6 +74,51 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
             utils.wrapObject(&a.position);
 
             rl.drawCircleLinesV(a.position, a.radius, .white);
+        }
+    }
+}
+
+pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid) void {
+    for (0..MAX_ASTEROIDS - 1) |i| {
+        var a1 = &asteroids[i];
+        if (!a1.active) continue;
+
+        for (i + 1..MAX_ASTEROIDS) |j| {
+            var a2 = &asteroids[j];
+            if (!a2.active) continue;
+
+            if (rl.checkCollisionCircles(a1.position, a1.radius, a2.position, a2.radius)) {
+                const delta = rl.Vector2.subtract(a1.position, a2.position);
+                const distance = rl.Vector2.length(delta);
+
+                const overlap = (a1.radius + a2.radius) - distance;
+
+                // normalize vector
+                const normal = rl.Vector2.normalize(delta);
+
+                // PUSH APART
+                // Create a vector of half the overlap length in the direction of collision
+                const push_vector = rl.Vector2.scale(normal, overlap * 0.5);
+                a1.position = rl.Vector2.add(a1.position, push_vector);
+                a2.position = rl.Vector2.subtract(a2.position, push_vector);
+
+                // BOUNCE
+                const relative_vel = rl.Vector2.subtract(a1.velocity, a2.velocity);
+
+                const vel_normal = rl.Vector2.dotProduct(relative_vel, normal);
+
+                if (vel_normal > 0) continue;
+
+                // calculate impulse
+                const restitution = 0.5;
+                var scale_factor = -(1.0 + restitution) * vel_normal;
+                scale_factor /= (1.0 / (a1.radius * a1.radius) + 1.0 / (a2.radius * a2.radius));
+
+                // apply impulse
+                const impulse = rl.Vector2.scale(normal, scale_factor);
+                a1.velocity = rl.Vector2.add(a1.velocity, rl.Vector2.scale(impulse, 1.0 / (a1.radius * a1.radius)));
+                a2.velocity = rl.Vector2.subtract(a2.velocity, rl.Vector2.scale(impulse, 1.0 / (a2.radius * a2.radius)));
+            }
         }
     }
 }

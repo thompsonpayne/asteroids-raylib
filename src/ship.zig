@@ -62,9 +62,9 @@ pub const Ship = struct {
         };
 
         // 4. Draw the lines connecting them
-        rl.drawLineV(nose, left_wing, rl.Color.white); // Nose -> Left
-        rl.drawLineV(left_wing, right_wing, rl.Color.white); // Left -> Right (The back)
-        rl.drawLineV(right_wing, nose, rl.Color.white); // Right -> Nose
+        rl.drawLineV(nose, left_wing, .white); // Nose -> Left
+        rl.drawLineV(left_wing, right_wing, .white); // Left -> Right (The back)
+        rl.drawLineV(right_wing, nose, .white); // Right -> Nose
     }
 
     pub fn handleMovement(ship: *Ship, dt: f32) void {
