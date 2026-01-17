@@ -15,7 +15,7 @@ pub const Asteroid = struct {
     radius: f32,
 };
 
-pub fn initAsteroids() [MAX_ASTEROIDS]Asteroid {
+pub fn init() [MAX_ASTEROIDS]Asteroid {
     var asteroids: [MAX_ASTEROIDS]Asteroid = undefined;
 
     for (0..MAX_ASTEROIDS) |i| {

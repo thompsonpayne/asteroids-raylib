@@ -3,9 +3,11 @@ const rl = @import("raylib");
 const utils = @import("utils.zig");
 const bullet_mod = @import("bullet.zig");
 const asteroid_mod = @import("asteroid.zig");
+const particles_mod = @import("particles.zig");
 
 const Bullet = bullet_mod.Bullet;
 const Asteroid = asteroid_mod.Asteroid;
+const Particle = particles_mod.Particle;
 
 const ROTATION_SPEED = utils.ROTATION_SPEED;
 const ACCELERATION = utils.ACCELERATION;
@@ -15,6 +17,7 @@ const DRAG = utils.DRAG;
 const MAX_BULLETS = utils.MAX_BULLETS;
 const BULLET_LIFE = utils.BULLET_LIFE;
 const BULLET_SPEED = utils.BULLET_SPEED;
+const MAX_PARTICLES = utils.MAX_PARTICLES;
 
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const SHIP_RADIUS = 15.0;
@@ -98,7 +101,13 @@ pub const Ship = struct {
         wrapObject(&ship.position);
     }
 
-    pub fn handleShooting(ship: *Ship, bullets: *[MAX_BULLETS]Bullet, asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
+    pub fn handleShooting(
+        ship: *Ship,
+        bullets: *[MAX_BULLETS]Bullet,
+        asteroids: *[MAX_ASTEROIDS]Asteroid,
+        particles: *[MAX_PARTICLES]Particle,
+        dt: f32,
+    ) void {
         if (rl.isKeyPressed(.space)) {
             // NOTE: shooting
             blk: for (0..MAX_BULLETS) |i| {
@@ -119,7 +128,6 @@ pub const Ship = struct {
             }
         }
 
-        // NOTE: bulelt vs asteroid collision
         blk: for (0..MAX_BULLETS) |b_idx| {
             var bullet = &bullets[b_idx];
 
@@ -142,6 +150,7 @@ pub const Ship = struct {
                 }
             }
 
+            // NOTE: asteroids collision with bullet
             for (0..MAX_ASTEROIDS) |a_idx| {
                 var asteroid = &asteroids[a_idx];
 
@@ -149,6 +158,13 @@ pub const Ship = struct {
 
                 if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
                     // bullet hit asteroid
+
+                    // spawn particles
+                    for (0..20) |_| {
+                        const offset = std.crypto.random.float(f32);
+                        const rand: f32 = @floatFromInt(rl.getRandomValue(0, 2));
+                        particles_mod.spawn(particles, asteroid.position, rand + offset);
+                    }
 
                     bullet.active = false;
                     asteroid.active = false;
@@ -206,6 +222,7 @@ pub const Ship = struct {
 
                 const vel_normal = rl.Vector2.dotProduct(relative_vel, normal);
 
+                if (vel_normal > 0) continue;
                 if (vel_normal > 0) continue;
 
                 // calculate impulse

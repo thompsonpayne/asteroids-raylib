@@ -10,6 +10,8 @@ pub const ROTATION_SPEED: f32 = 300.0; // degree per second
 pub const ACCELERATION: f32 = 400.0;
 pub const DRAG: f32 = 0.98; // friction (slow down 2% every frame)
 
+pub const MAX_PARTICLES = 200;
+
 pub const SCREEN_WIDTH = 800;
 pub const SCREEN_HEIGHT = 450;
 
