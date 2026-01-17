@@ -65,14 +65,33 @@ pub fn draw(particles: *[MAX_PARTICLES]Particle, dt: f32) void {
             p.velocity.x *= DRAG - 0.05;
             p.velocity.y *= DRAG - 0.05;
 
+            // reduce size over time
             p.size -= p.size * dt * 0.5;
+
+            if (p.size < 1.0) {
+                p.color = .ray_white;
+            } else if (p.size < 2.0) {
+                p.color = .red;
+            } else if (p.size < 3.0) {
+                p.color = .orange;
+            } else if (p.size < 4.0) {
+                p.color = .gold;
+            } else {
+                p.color = .yellow;
+            }
+
             p.lifetime -= dt;
             // TODO: simple life time, to be enhanced
             if (p.lifetime <= 0) {
                 p.active = false;
             }
 
-            rl.drawCircle(@intFromFloat(p.position.x), @intFromFloat(p.position.y), p.size, .yellow);
+            rl.drawCircle(
+                @intFromFloat(p.position.x),
+                @intFromFloat(p.position.y),
+                p.size,
+                p.color,
+            );
         }
     }
 }
