@@ -20,55 +20,103 @@ const BULLET_SPEED = utils.BULLET_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
-const SHIP_RADIUS = 15.0;
+// const SHIP_RADIUS = 15.0;
 const wrapObject = utils.wrapObject;
 
 pub const Ship = struct {
     position: rl.Vector2,
     velocity: rl.Vector2, // speed x, speed y
     rotation: f32, // direction facing (degree)
+    texture: rl.Texture2D,
+
+    pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
+        return .{
+            .position = position,
+            .velocity = .{ .x = 0, .y = 0 },
+            .rotation = 0,
+            .texture = texture,
+        };
+    }
+
+    pub fn deinit(self: *Ship) void {
+        rl.unloadTexture(self.texture);
+    }
 
     pub fn draw(self: *Ship) void {
-        const rotation = self.rotation;
-        const position = self.position;
+        const texture = self.texture;
 
-        const length: f32 = 25.0; // nose length
-        const width: f32 = 12.0; // wings width
-
-        // The three points of our triangle relative to (0,0)
-        // We assume 0 degrees is facing RIGHT (Positive X)
-        const p1 = rl.Vector2{ .x = length, .y = 0 }; //nose
-        const p2 = rl.Vector2{ .x = -length, .y = -width }; //back left
-        const p3 = rl.Vector2{ .x = -length, .y = width }; //back left
-
-        const rads = rotation * (std.math.pi / 180.0);
-        const s = std.math.sin(rads);
-        const c = std.math.cos(rads);
-
-        // Rotate and Move each point
-        // Formula:
-        // new_x = (x * cos) - (y * sin) + ship_x
-        // new_y = (x * sin) + (y * cos) + ship_y
-
-        const nose = rl.Vector2{
-            .x = (p1.x * c) - (p1.y * s) + position.x,
-            .y = (p1.x * s) + (p1.y * c) + position.y,
+        const source = rl.Rectangle{
+            .x = 0,
+            .y = 0,
+            .width = @floatFromInt(texture.width),
+            .height = @floatFromInt(texture.height),
         };
 
-        const left_wing = rl.Vector2{
-            .x = (p2.x * c) - (p2.y * s) + position.x,
-            .y = (p2.x * s) + (p2.y * c) + position.y,
+        const scale: f32 = 0.05;
+
+        // destination rect (centered on ship position)
+        const dest = rl.Rectangle{
+            .x = self.position.x,
+            .y = self.position.y,
+            .width = @as(f32, @floatFromInt(texture.width)) * scale,
+            .height = @as(f32, @floatFromInt(texture.height)) * scale,
         };
 
-        const right_wing = rl.Vector2{
-            .x = (p3.x * c) - (p3.y * s) + position.x,
-            .y = (p3.x * s) + (p3.y * c) + position.y,
+        // origin point for rotation (center of sprite)
+        const origin = rl.Vector2{
+            .x = dest.width / 2.0,
+            .y = dest.height / 2.0,
         };
 
-        // 4. Draw the lines connecting them
-        rl.drawLineV(nose, left_wing, .white); // Nose -> Left
-        rl.drawLineV(left_wing, right_wing, .white); // Left -> Right (The back)
-        rl.drawLineV(right_wing, nose, .white); // Right -> Nose
+        rl.drawTexturePro(
+            texture,
+            source,
+            dest,
+            origin,
+            self.rotation,
+            .white,
+        );
+
+        // const rotation = self.rotation;
+        // const position = self.position;
+        //
+        // const length: f32 = 25.0; // nose length
+        // const width: f32 = 12.0; // wings width
+        //
+        // // The three points of our triangle relative to (0,0)
+        // // We assume 0 degrees is facing RIGHT (Positive X)
+        // const p1 = rl.Vector2{ .x = length, .y = 0 }; //nose
+        // const p2 = rl.Vector2{ .x = -length, .y = -width }; //back left
+        // const p3 = rl.Vector2{ .x = -length, .y = width }; //back left
+        //
+        // const rads = rotation * (std.math.pi / 180.0);
+        // const s = std.math.sin(rads);
+        // const c = std.math.cos(rads);
+        //
+        // // Rotate and Move each point
+        // // Formula:
+        // // new_x = (x * cos) - (y * sin) + ship_x
+        // // new_y = (x * sin) + (y * cos) + ship_y
+        //
+        // const nose = rl.Vector2{
+        //     .x = (p1.x * c) - (p1.y * s) + position.x,
+        //     .y = (p1.x * s) + (p1.y * c) + position.y,
+        // };
+        //
+        // const left_wing = rl.Vector2{
+        //     .x = (p2.x * c) - (p2.y * s) + position.x,
+        //     .y = (p2.x * s) + (p2.y * c) + position.y,
+        // };
+        //
+        // const right_wing = rl.Vector2{
+        //     .x = (p3.x * c) - (p3.y * s) + position.x,
+        //     .y = (p3.x * s) + (p3.y * c) + position.y,
+        // };
+        //
+        // // 4. Draw the lines connecting them
+        // rl.drawLineV(nose, left_wing, .white); // Nose -> Left
+        // rl.drawLineV(left_wing, right_wing, .white); // Left -> Right (The back)
+        // rl.drawLineV(right_wing, nose, .white); // Right -> Nose
     }
 
     pub fn handleMovement(ship: *Ship, dt: f32) void {
@@ -196,9 +244,13 @@ pub const Ship = struct {
 
     pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle) void {
         for (asteroids) |*a| {
-            // TODO: add ship radius config
+            if (!a.active) continue;
 
-            if (rl.checkCollisionCircles(self.position, 15.0, a.position, a.radius)) {
+            const scale = 0.1;
+            const ship_width = @as(f32, @floatFromInt(self.texture.width)) * scale;
+            const ship_radius = ship_width / 2.0;
+
+            if (rl.checkCollisionCircles(self.position, ship_radius, a.position, a.radius)) {
                 const delta = rl.Vector2.subtract(self.position, a.position);
                 const distance = rl.Vector2.length(delta);
                 // normalize vector (we need direction, not magnitude)
@@ -206,11 +258,11 @@ pub const Ship = struct {
 
                 const collision_point = rl.Vector2.subtract(
                     self.position,
-                    rl.Vector2.scale(normal, SHIP_RADIUS),
+                    rl.Vector2.scale(normal, ship_radius),
                 );
                 particles_mod.spawn(particles, collision_point, .sparks);
 
-                const overlap = (SHIP_RADIUS + a.radius) - distance;
+                const overlap = (ship_radius + a.radius) - distance;
 
                 // NOTE: push apart handling
                 // create a vector of half the overlap length in the direction of collision
@@ -225,16 +277,15 @@ pub const Ship = struct {
                 const vel_normal = rl.Vector2.dotProduct(relative_vel, normal);
 
                 if (vel_normal > 0) continue;
-                if (vel_normal > 0) continue;
 
                 // calculate impulse
                 const restitution = 0.5;
                 var scale_factor = -(1.0 + restitution) * vel_normal;
-                scale_factor /= (1.0 / (SHIP_RADIUS * SHIP_RADIUS) + 1.0 / (a.radius * a.radius));
+                scale_factor /= (1.0 / (ship_radius * ship_radius) + 1.0 / (a.radius * a.radius));
 
                 // apply impulse
                 const impulse = rl.Vector2.scale(normal, scale_factor);
-                self.velocity = rl.Vector2.add(self.velocity, rl.Vector2.scale(impulse, 1.0 / (SHIP_RADIUS * SHIP_RADIUS)));
+                self.velocity = rl.Vector2.add(self.velocity, rl.Vector2.scale(impulse, 1.0 / (ship_radius * ship_radius)));
                 a.velocity = rl.Vector2.subtract(a.velocity, rl.Vector2.scale(impulse, 1.0 / (a.radius * a.radius)));
             }
         }

@@ -31,11 +31,9 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    var ship: Ship = .{
-        .position = .{ .x = 100, .y = 200 },
-        .rotation = 0,
-        .velocity = .{ .x = 0, .y = 0 },
-    };
+    const ship_texture = try rl.loadTexture("src/assets/11.png");
+    var ship: Ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
+    defer ship.deinit();
 
     // NOTE: Game loop
     while (!rl.windowShouldClose()) {
