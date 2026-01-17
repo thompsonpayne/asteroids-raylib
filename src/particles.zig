@@ -65,6 +65,7 @@ pub fn draw(particles: *[MAX_PARTICLES]Particle, dt: f32) void {
             p.velocity.x *= DRAG - 0.05;
             p.velocity.y *= DRAG - 0.05;
 
+            p.size -= p.size * dt * 0.5;
             p.lifetime -= dt;
             // TODO: simple life time, to be enhanced
             if (p.lifetime <= 0) {

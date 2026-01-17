@@ -162,7 +162,7 @@ pub const Ship = struct {
                     // spawn particles
                     for (0..20) |_| {
                         const offset = std.crypto.random.float(f32);
-                        const rand: f32 = @floatFromInt(rl.getRandomValue(0, 2));
+                        const rand: f32 = @floatFromInt(rl.getRandomValue(0, 4));
                         particles_mod.spawn(particles, asteroid.position, rand + offset);
                     }
 
