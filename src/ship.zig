@@ -159,12 +159,7 @@ pub const Ship = struct {
                 if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
                     // bullet hit asteroid
 
-                    // spawn particles
-                    for (0..20) |_| {
-                        const offset = std.crypto.random.float(f32);
-                        const rand: f32 = @floatFromInt(rl.getRandomValue(0, 5));
-                        particles_mod.spawn(particles, asteroid.position, rand + offset);
-                    }
+                    particles_mod.spawn(particles, asteroid.position, .explosion);
 
                     bullet.active = false;
                     asteroid.active = false;
@@ -183,6 +178,8 @@ pub const Ship = struct {
                             .{ .x = asteroid.position.x + 20, .y = asteroid.position.y + 20 },
                             new_size,
                         );
+
+                        particles_mod.spawn(particles, asteroid.position, .debris);
                     }
 
                     break :blk;
@@ -197,18 +194,23 @@ pub const Ship = struct {
         }
     }
 
-    pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid) void {
+    pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle) void {
         for (asteroids) |*a| {
             // TODO: add ship radius config
 
             if (rl.checkCollisionCircles(self.position, 15.0, a.position, a.radius)) {
                 const delta = rl.Vector2.subtract(self.position, a.position);
                 const distance = rl.Vector2.length(delta);
-
-                const overlap = (SHIP_RADIUS + a.radius) - distance;
-
                 // normalize vector (we need direction, not magnitude)
                 const normal = rl.Vector2.normalize(delta);
+
+                const collision_point = rl.Vector2.subtract(
+                    self.position,
+                    rl.Vector2.scale(normal, SHIP_RADIUS),
+                );
+                particles_mod.spawn(particles, collision_point, .sparks);
+
+                const overlap = (SHIP_RADIUS + a.radius) - distance;
 
                 // NOTE: push apart handling
                 // create a vector of half the overlap length in the direction of collision

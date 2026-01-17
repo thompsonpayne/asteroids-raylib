@@ -1,11 +1,13 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("utils.zig");
+const particles_mod = @import("particles.zig");
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const DRAG = utils.DRAG;
 const rand = std.crypto.random;
 const SPREAD_DEGREE = 360.0;
 const INIT_ASTEROIDS = utils.INIT_ASTEROIDS;
+const MAX_PARTICLES = utils.MAX_PARTICLES;
 
 pub const Asteroid = struct {
     active: bool,
@@ -14,6 +16,8 @@ pub const Asteroid = struct {
     rotation: f32,
     radius: f32,
 };
+
+const Particle = particles_mod.Particle;
 
 pub fn init() [MAX_ASTEROIDS]Asteroid {
     var asteroids: [MAX_ASTEROIDS]Asteroid = undefined;
@@ -79,7 +83,7 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
     }
 }
 
-pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid) void {
+pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle) void {
     for (0..MAX_ASTEROIDS - 1) |i| {
         var a1 = &asteroids[i];
         if (!a1.active) continue;
@@ -91,6 +95,12 @@ pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid) void {
             if (rl.checkCollisionCircles(a1.position, a1.radius, a2.position, a2.radius)) {
                 const delta = rl.Vector2.subtract(a1.position, a2.position);
                 const distance = rl.Vector2.length(delta);
+
+                const collision_point = rl.Vector2.subtract(
+                    a1.position,
+                    rl.Vector2.scale(rl.Vector2.normalize(delta), a1.radius),
+                );
+                particles_mod.spawn(particles, collision_point, .sparks);
 
                 const overlap = (a1.radius + a2.radius) - distance;
 

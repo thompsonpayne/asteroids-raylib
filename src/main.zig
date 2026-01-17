@@ -50,14 +50,15 @@ pub fn main() !void {
 
         // draw asteroids
         asteroid_mod.draw(&asteroids, dt);
-        asteroid_mod.handleCollisionOnEachOther(&asteroids);
+        asteroid_mod.handleCollisionOnEachOther(&asteroids, &particles);
 
         ship.handleShooting(&bullets, &asteroids, &particles, dt);
-        ship.handleAsteroidCollision(&asteroids);
+        ship.handleAsteroidCollision(&asteroids, &particles);
 
-        // observe particles
-        particles_mod.draw(&particles, dt);
+        particles_mod.update(&particles, dt);
 
         rl.clearBackground(.black);
+
+        particles_mod.draw(&particles);
     }
 }
