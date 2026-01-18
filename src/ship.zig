@@ -20,7 +20,6 @@ const BULLET_SPEED = utils.BULLET_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
-// const SHIP_RADIUS = 15.0;
 const wrapObject = utils.wrapObject;
 
 pub const Ship = struct {
@@ -28,13 +27,20 @@ pub const Ship = struct {
     velocity: rl.Vector2, // speed x, speed y
     rotation: f32, // direction facing (degree)
     texture: rl.Texture2D,
+    thrusting: bool,
+    radius: f32,
 
     pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
+        const scale = 0.1;
+        const ship_width = @as(f32, @floatFromInt(texture.width)) * scale;
+
         return .{
             .position = position,
             .velocity = .{ .x = 0, .y = 0 },
             .rotation = 0,
             .texture = texture,
+            .thrusting = false,
+            .radius = ship_width / 4.5,
         };
     }
 
@@ -68,6 +74,62 @@ pub const Ship = struct {
             .y = dest.height / 2.0,
         };
 
+        if (self.thrusting) {
+            const rads = std.math.degreesToRadians(self.rotation);
+            const cos_t = std.math.cos(rads);
+            const sin_t = std.math.sin(rads);
+
+            // Ship forward vector (x=cos, y=sin)
+            const forward = rl.Vector2{ .x = cos_t, .y = sin_t };
+
+            // Tail position (behind center)
+            const offset = dest.width * 0.4;
+            const tail = rl.Vector2{
+                .x = self.position.x - forward.x * offset,
+                .y = self.position.y - forward.y * offset,
+            };
+
+            // Flame dimensions
+            const flicker = @as(f32, @floatFromInt(rl.getRandomValue(0, 10))) / 20.0; // 0.0 - 0.5
+            const flame_len = dest.width * (0.5 + flicker);
+            const flame_width = dest.width * 0.3;
+
+            // Flame tip
+            const tip = rl.Vector2{
+                .x = tail.x - forward.x * flame_len,
+                .y = tail.y - forward.y * flame_len,
+            };
+
+            // Flame base corners (perpendicular to forward)
+            const perp = rl.Vector2{ .x = -forward.y, .y = forward.x };
+            const p1 = rl.Vector2{
+                .x = tail.x + perp.x * flame_width * 0.5,
+                .y = tail.y + perp.y * flame_width * 0.5,
+            };
+            const p2 = rl.Vector2{
+                .x = tail.x - perp.x * flame_width * 0.5,
+                .y = tail.y - perp.y * flame_width * 0.5,
+            };
+
+            // Draw outer flame
+            rl.drawTriangle(p1, p2, tip, .orange);
+
+            // Inner flame
+            const p1_i = rl.Vector2{
+                .x = tail.x + perp.x * flame_width * 0.3,
+                .y = tail.y + perp.y * flame_width * 0.3,
+            };
+            const p2_i = rl.Vector2{
+                .x = tail.x - perp.x * flame_width * 0.3,
+                .y = tail.y - perp.y * flame_width * 0.3,
+            };
+            const tip_i = rl.Vector2{
+                .x = tail.x - forward.x * flame_len * 0.6,
+                .y = tail.y - forward.y * flame_len * 0.6,
+            };
+            rl.drawTriangle(p1_i, p2_i, tip_i, .yellow);
+        }
+
         rl.drawTexturePro(
             texture,
             source,
@@ -76,77 +138,39 @@ pub const Ship = struct {
             self.rotation,
             .white,
         );
-
-        // const rotation = self.rotation;
-        // const position = self.position;
-        //
-        // const length: f32 = 25.0; // nose length
-        // const width: f32 = 12.0; // wings width
-        //
-        // // The three points of our triangle relative to (0,0)
-        // // We assume 0 degrees is facing RIGHT (Positive X)
-        // const p1 = rl.Vector2{ .x = length, .y = 0 }; //nose
-        // const p2 = rl.Vector2{ .x = -length, .y = -width }; //back left
-        // const p3 = rl.Vector2{ .x = -length, .y = width }; //back left
-        //
-        // const rads = rotation * (std.math.pi / 180.0);
-        // const s = std.math.sin(rads);
-        // const c = std.math.cos(rads);
-        //
-        // // Rotate and Move each point
-        // // Formula:
-        // // new_x = (x * cos) - (y * sin) + ship_x
-        // // new_y = (x * sin) + (y * cos) + ship_y
-        //
-        // const nose = rl.Vector2{
-        //     .x = (p1.x * c) - (p1.y * s) + position.x,
-        //     .y = (p1.x * s) + (p1.y * c) + position.y,
-        // };
-        //
-        // const left_wing = rl.Vector2{
-        //     .x = (p2.x * c) - (p2.y * s) + position.x,
-        //     .y = (p2.x * s) + (p2.y * c) + position.y,
-        // };
-        //
-        // const right_wing = rl.Vector2{
-        //     .x = (p3.x * c) - (p3.y * s) + position.x,
-        //     .y = (p3.x * s) + (p3.y * c) + position.y,
-        // };
-        //
-        // // 4. Draw the lines connecting them
-        // rl.drawLineV(nose, left_wing, .white); // Nose -> Left
-        // rl.drawLineV(left_wing, right_wing, .white); // Left -> Right (The back)
-        // rl.drawLineV(right_wing, nose, .white); // Right -> Nose
     }
 
-    pub fn handleMovement(ship: *Ship, dt: f32) void {
-        if (rl.isKeyDown(.right)) {
-            ship.rotation += dt * ROTATION_SPEED;
+    pub fn handleMovement(self: *Ship, dt: f32) void {
+        self.thrusting = false;
+
+        if (rl.isKeyDown(.d)) {
+            self.rotation += dt * ROTATION_SPEED;
         }
 
-        if (rl.isKeyDown(.left)) {
-            ship.rotation -= dt * ROTATION_SPEED;
+        if (rl.isKeyDown(.a)) {
+            self.rotation -= dt * ROTATION_SPEED;
         }
 
-        if (rl.isKeyDown(.up)) {
+        if (rl.isKeyDown(.w)) {
             // thrust and rotation
-            const rads = ship.rotation * (std.math.pi / 180.0);
+            const rads = std.math.degreesToRadians(self.rotation);
 
             const force_x = std.math.cos(rads) * ACCELERATION * dt;
             const force_y = std.math.sin(rads) * ACCELERATION * dt;
 
-            ship.velocity.x += force_x;
-            ship.velocity.y += force_y;
+            self.velocity.x += force_x;
+            self.velocity.y += force_y;
+            self.thrusting = true;
         }
 
-        ship.position.x += ship.velocity.x * dt;
-        ship.position.y += ship.velocity.y * dt;
+        self.position.x += self.velocity.x * dt;
+        self.position.y += self.velocity.y * dt;
 
         // drag down the velocity
-        ship.velocity.x *= DRAG;
-        ship.velocity.y *= DRAG;
+        self.velocity.x *= DRAG;
+        self.velocity.y *= DRAG;
 
-        wrapObject(&ship.position);
+        wrapObject(&self.position);
     }
 
     pub fn handleShooting(
@@ -246,11 +270,7 @@ pub const Ship = struct {
         for (asteroids) |*a| {
             if (!a.active) continue;
 
-            const scale = 0.1;
-            const ship_width = @as(f32, @floatFromInt(self.texture.width)) * scale;
-            const ship_radius = ship_width / 2.0;
-
-            if (rl.checkCollisionCircles(self.position, ship_radius, a.position, a.radius)) {
+            if (rl.checkCollisionCircles(self.position, self.radius, a.position, a.radius)) {
                 const delta = rl.Vector2.subtract(self.position, a.position);
                 const distance = rl.Vector2.length(delta);
                 // normalize vector (we need direction, not magnitude)
@@ -258,11 +278,11 @@ pub const Ship = struct {
 
                 const collision_point = rl.Vector2.subtract(
                     self.position,
-                    rl.Vector2.scale(normal, ship_radius),
+                    rl.Vector2.scale(normal, self.radius),
                 );
                 particles_mod.spawn(particles, collision_point, .sparks);
 
-                const overlap = (ship_radius + a.radius) - distance;
+                const overlap = (self.radius + a.radius) - distance;
 
                 // NOTE: push apart handling
                 // create a vector of half the overlap length in the direction of collision
@@ -281,11 +301,11 @@ pub const Ship = struct {
                 // calculate impulse
                 const restitution = 0.5;
                 var scale_factor = -(1.0 + restitution) * vel_normal;
-                scale_factor /= (1.0 / (ship_radius * ship_radius) + 1.0 / (a.radius * a.radius));
+                scale_factor /= (1.0 / (self.radius * self.radius) + 1.0 / (a.radius * a.radius));
 
                 // apply impulse
                 const impulse = rl.Vector2.scale(normal, scale_factor);
-                self.velocity = rl.Vector2.add(self.velocity, rl.Vector2.scale(impulse, 1.0 / (ship_radius * ship_radius)));
+                self.velocity = rl.Vector2.add(self.velocity, rl.Vector2.scale(impulse, 1.0 / (self.radius * self.radius)));
                 a.velocity = rl.Vector2.subtract(a.velocity, rl.Vector2.scale(impulse, 1.0 / (a.radius * a.radius)));
             }
         }
