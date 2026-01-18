@@ -31,7 +31,7 @@ pub fn main() !void {
 
     rl.setTargetFPS(60);
 
-    const ship_texture = try rl.loadTexture("src/assets/11.png");
+    const ship_texture = try rl.loadTexture("src/assets/ship.png");
     var ship: Ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
     defer ship.deinit();
 
