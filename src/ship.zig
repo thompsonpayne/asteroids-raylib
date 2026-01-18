@@ -48,7 +48,7 @@ pub const Ship = struct {
         rl.unloadTexture(self.texture);
     }
 
-    pub fn draw(self: *Ship) void {
+    pub fn draw(self: *Ship) !void {
         const texture = self.texture;
 
         const source = rl.Rectangle{
@@ -111,8 +111,12 @@ pub const Ship = struct {
                 .y = tail.y - perp.y * flame_width * 0.5,
             };
 
+            const speed = rl.Vector2.length(self.velocity);
+
+            const t = std.math.clamp(speed / ACCELERATION, 0.0, 1.0);
+            const outer_color = utils.lerpColor(.red, .sky_blue, t);
             // Draw outer flame
-            rl.drawTriangle(p1, p2, tip, .orange);
+            rl.drawTriangle(p1, p2, tip, outer_color);
 
             // Inner flame
             const p1_i = rl.Vector2{
@@ -127,7 +131,9 @@ pub const Ship = struct {
                 .x = tail.x - forward.x * flame_len * 0.6,
                 .y = tail.y - forward.y * flame_len * 0.6,
             };
-            rl.drawTriangle(p1_i, p2_i, tip_i, .yellow);
+
+            const inner_color = utils.lerpColor(.yellow, .ray_white, t);
+            rl.drawTriangle(p1_i, p2_i, tip_i, inner_color);
         }
 
         rl.drawTexturePro(

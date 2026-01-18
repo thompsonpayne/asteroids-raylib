@@ -90,16 +90,6 @@ fn getConfig(particle_type: ParticleType) ParticleConfig {
     };
 }
 
-fn lerpColor(c1: rl.Color, c2: rl.Color, t: f32) rl.Color {
-    const rt = @as(f32, 1.0) - t;
-    return .{
-        .r = @intFromFloat(@as(f32, @floatFromInt(c1.r)) * rt + @as(f32, @floatFromInt(c2.r)) * t),
-        .g = @intFromFloat(@as(f32, @floatFromInt(c1.g)) * rt + @as(f32, @floatFromInt(c2.g)) * t),
-        .b = @intFromFloat(@as(f32, @floatFromInt(c1.b)) * rt + @as(f32, @floatFromInt(c2.b)) * t),
-        .a = @intFromFloat(@as(f32, @floatFromInt(c1.a)) * rt + @as(f32, @floatFromInt(c2.a)) * t),
-    };
-}
-
 pub fn spawn(
     particles: *[MAX_PARTICLES]Particle,
     pos: rl.Vector2,
@@ -169,7 +159,7 @@ pub fn draw(particles: *[MAX_PARTICLES]Particle) void {
 
             const config: ParticleConfig = if (speed > 250) SPARKS_CONFIG else if (p.initial_size > 5) DEBRIS_CONFIG else EXPLOSION_CONFIG;
 
-            p.color = lerpColor(config.color_start, config.color_end, 1.0 - life_ratio);
+            p.color = utils.lerpColor(config.color_start, config.color_end, 1.0 - life_ratio);
 
             if (p.size < 1.0) {
                 p.active = false;

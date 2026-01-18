@@ -18,7 +18,6 @@ const SCREEN_HEIGHT = utils.SCREEN_HEIGHT;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const ACCELERATION = utils.ACCELERATION;
-const DRAG = utils.DRAG;
 const SPREAD_DEGREE = 180.0;
 
 pub fn main() !void {
@@ -44,7 +43,17 @@ pub fn main() !void {
 
         ship.handleMovement(dt);
 
-        ship.draw();
+        try ship.draw();
+        // debug
+        const speed = rl.Vector2.length(ship.velocity);
+        rl.drawText(
+            rl.textFormat("Speed: %.2f", .{speed}),
+            SCREEN_WIDTH - 200.0,
+            10,
+            20,
+            .white,
+        );
+        rl.drawFPS(10, 10);
 
         // draw asteroids
         asteroid_mod.draw(&asteroids, dt);

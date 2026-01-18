@@ -30,3 +30,13 @@ pub fn wrapObject(position: *rl.Vector2) void {
         position.y = SCREEN_HEIGHT + buffer;
     }
 }
+
+pub fn lerpColor(c1: rl.Color, c2: rl.Color, t: f32) rl.Color {
+    const rt = @as(f32, 1.0) - t;
+    return .{
+        .r = @intFromFloat(@as(f32, @floatFromInt(c1.r)) * rt + @as(f32, @floatFromInt(c2.r)) * t),
+        .g = @intFromFloat(@as(f32, @floatFromInt(c1.g)) * rt + @as(f32, @floatFromInt(c2.g)) * t),
+        .b = @intFromFloat(@as(f32, @floatFromInt(c1.b)) * rt + @as(f32, @floatFromInt(c2.b)) * t),
+        .a = @intFromFloat(@as(f32, @floatFromInt(c1.a)) * rt + @as(f32, @floatFromInt(c2.a)) * t),
+    };
+}
