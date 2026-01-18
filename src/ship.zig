@@ -1,14 +1,14 @@
 const std = @import("std");
+
 const rl = @import("raylib");
-const utils = @import("utils.zig");
-const bullet_mod = @import("bullet.zig");
+
 const asteroid_mod = @import("asteroid.zig");
-const particles_mod = @import("particles.zig");
-
-const Bullet = bullet_mod.Bullet;
 const Asteroid = asteroid_mod.Asteroid;
+const bullet_mod = @import("bullet.zig");
+const Bullet = bullet_mod.Bullet;
+const particles_mod = @import("particles.zig");
 const Particle = particles_mod.Particle;
-
+const utils = @import("utils.zig");
 const ROTATION_SPEED = utils.ROTATION_SPEED;
 const ACCELERATION = utils.ACCELERATION;
 const SCREEN_HEIGHT = utils.SCREEN_HEIGHT;
@@ -18,7 +18,6 @@ const MAX_BULLETS = utils.MAX_BULLETS;
 const BULLET_LIFE = utils.BULLET_LIFE;
 const BULLET_SPEED = utils.BULLET_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
-
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const wrapObject = utils.wrapObject;
 
@@ -37,7 +36,7 @@ pub const Ship = struct {
         return .{
             .position = position,
             .velocity = .{ .x = 0, .y = 0 },
-            .rotation = 0,
+            .rotation = -90,
             .texture = texture,
             .thrusting = false,
             .radius = ship_width / 4.5,

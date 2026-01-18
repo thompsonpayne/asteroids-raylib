@@ -1,5 +1,7 @@
 const std = @import("std");
+
 const rl = @import("raylib");
+
 const utils = @import("utils.zig");
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const DRAG = utils.DRAG;

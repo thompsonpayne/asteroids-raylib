@@ -1,14 +1,17 @@
 const std = @import("std");
+const rand = std.crypto.random;
+
 const rl = @import("raylib");
-const utils = @import("utils.zig");
+
 const particles_mod = @import("particles.zig");
+const Particle = particles_mod.Particle;
+const utils = @import("utils.zig");
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const DRAG = utils.DRAG;
-const rand = std.crypto.random;
-const SPREAD_DEGREE = 360.0;
 const INIT_ASTEROIDS = utils.INIT_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 
+const SPREAD_DEGREE = 360.0;
 pub const Asteroid = struct {
     active: bool,
     position: rl.Vector2,
@@ -16,8 +19,6 @@ pub const Asteroid = struct {
     rotation: f32,
     radius: f32,
 };
-
-const Particle = particles_mod.Particle;
 
 pub fn init() [MAX_ASTEROIDS]Asteroid {
     var asteroids: [MAX_ASTEROIDS]Asteroid = undefined;

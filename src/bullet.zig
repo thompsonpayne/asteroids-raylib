@@ -1,4 +1,5 @@
 const rl = @import("raylib");
+
 const utils = @import("utils.zig");
 const MAX_BULLETS = utils.MAX_BULLETS;
 
