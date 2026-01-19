@@ -20,6 +20,11 @@ const BULLET_SPEED = utils.BULLET_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const wrapObject = utils.wrapObject;
+// --- CONSTANTS FOR BEHAVIOR ---
+const PHASE_1_DURATION = 0.4; // Seconds to curve/slow down
+const MISSILE_TURN_RATE = 90.0; // How fast it curves initially
+const LAUNCH_DRAG = 0.92; // How fast it slows down initially (0.90 - 0.99)
+const BOOST_ACCEL = 600.0; // How fast it speeds up in Phase 2
 
 pub const Ship = struct {
     position: rl.Vector2,
@@ -196,10 +201,12 @@ pub const Ship = struct {
                     bullet.life_time = BULLET_LIFE;
 
                     bullet.position = ship.position;
+                    bullet.angle = ship.rotation;
 
-                    const rads = ship.rotation * (std.math.pi / 180.0);
+                    const rads = std.math.degreesToRadians(ship.rotation);
                     bullet.velocity.x = (std.math.cos(rads) * BULLET_SPEED) + ship.velocity.x;
                     bullet.velocity.y = (std.math.sin(rads) * BULLET_SPEED) + ship.velocity.y;
+
                     break :blk;
                 }
             }
@@ -209,6 +216,33 @@ pub const Ship = struct {
             var bullet = &bullets[b_idx];
 
             if (bullet.active) {
+
+                // prototype missiles
+                const time_alive = BULLET_LIFE - bullet.life_time;
+
+                if (time_alive < PHASE_1_DURATION) {
+                    bullet.angle -= MISSILE_TURN_RATE * dt;
+
+                    const rads = std.math.degreesToRadians(bullet.angle - 90);
+                    bullet.velocity.x *= LAUNCH_DRAG;
+                    bullet.velocity.y *= LAUNCH_DRAG;
+                    const speed = rl.Vector2.length(bullet.velocity);
+                    bullet.velocity.x = std.math.cos(rads) * speed;
+                    bullet.velocity.y = std.math.sin(rads) * speed;
+                } else {
+                    const rads = std.math.degreesToRadians(ship.rotation);
+                    bullet.velocity.x += std.math.cos(rads) * BOOST_ACCEL * dt;
+                    bullet.velocity.y += std.math.sin(rads) * BOOST_ACCEL * dt;
+
+                    const MAX_SPEED = 1000.0;
+                    const speed = rl.Vector2.length(bullet.velocity);
+                    if (speed > MAX_SPEED) {
+                        const scale = MAX_SPEED / speed;
+                        bullet.velocity.x *= scale;
+                        bullet.velocity.y *= scale;
+                    }
+                }
+
                 // Move
                 bullet.position.x += bullet.velocity.x * dt;
                 bullet.position.y += bullet.velocity.y * dt;

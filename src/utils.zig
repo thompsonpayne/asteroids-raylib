@@ -1,10 +1,11 @@
 const rl = @import("raylib");
 
 pub const MAX_BULLETS = 50;
+pub const MAX_MISSLES = 10;
 pub const MAX_ASTEROIDS = 60;
 pub const INIT_ASTEROIDS = 8;
-pub const BULLET_SPEED = 500.0;
-pub const BULLET_LIFE = 1.5; // seconds
+pub const BULLET_SPEED = 200.0;
+pub const BULLET_LIFE = 5.5; // seconds
 
 pub const ROTATION_SPEED: f32 = 300.0; // degree per second
 pub const ACCELERATION: f32 = 400.0;
@@ -12,8 +13,8 @@ pub const DRAG: f32 = 0.98; // friction (slow down 2% every frame)
 
 pub const MAX_PARTICLES = 200;
 
-pub const SCREEN_WIDTH = 800;
-pub const SCREEN_HEIGHT = 450;
+pub const SCREEN_WIDTH = 1280;
+pub const SCREEN_HEIGHT = 720;
 
 pub fn wrapObject(position: *rl.Vector2) void {
     const buffer: f32 = 20.0; // ~ship/asteroid size
