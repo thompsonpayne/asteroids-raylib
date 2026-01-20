@@ -17,6 +17,7 @@ const DRAG = utils.DRAG;
 const MAX_BULLETS = utils.MAX_BULLETS;
 const BULLET_LIFE = utils.BULLET_LIFE;
 const BULLET_SPEED = utils.BULLET_SPEED;
+const MISSILE_SPEED = utils.MISSILE_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const wrapObject = utils.wrapObject;
@@ -190,8 +191,8 @@ pub const Ship = struct {
         particles: *[MAX_PARTICLES]Particle,
         dt: f32,
     ) void {
-        if (rl.isKeyPressed(.space)) {
-            // NOTE: shooting
+        if (rl.isKeyPressed(.space) and rl.isKeyUp(.left_shift)) {
+            // NOTE: shooting normal bullets
             blk: for (0..MAX_BULLETS) |i| {
                 var bullet = &bullets[i];
 
@@ -199,6 +200,7 @@ pub const Ship = struct {
                     // wake bullet up
                     bullet.active = true;
                     bullet.life_time = BULLET_LIFE;
+                    bullet.type = .normal;
 
                     bullet.position = ship.position;
                     bullet.angle = ship.rotation;
@@ -212,34 +214,59 @@ pub const Ship = struct {
             }
         }
 
+        if (rl.isKeyPressed(.space) and rl.isKeyDown(.left_shift)) {
+            // NOTE: shooting missiles
+            blk: for (0..MAX_BULLETS) |i| {
+                var bullet = &bullets[i];
+
+                if (!bullet.active) {
+                    // wake bullet up
+                    bullet.active = true;
+                    bullet.life_time = BULLET_LIFE;
+                    bullet.type = .missile;
+
+                    bullet.position = ship.position;
+                    bullet.angle = ship.rotation;
+
+                    const rads = std.math.degreesToRadians(ship.rotation);
+                    bullet.velocity.x = (std.math.cos(rads) * MISSILE_SPEED) + ship.velocity.x;
+                    bullet.velocity.y = (std.math.sin(rads) * MISSILE_SPEED) + ship.velocity.y;
+
+                    break :blk;
+                }
+            }
+        }
+
         blk: for (0..MAX_BULLETS) |b_idx| {
             var bullet = &bullets[b_idx];
 
             if (bullet.active) {
 
                 // prototype missiles
-                const time_alive = BULLET_LIFE - bullet.life_time;
+                if (bullet.type == .missile) {
+                    const time_alive = BULLET_LIFE - bullet.life_time;
 
-                if (time_alive < PHASE_1_DURATION) {
-                    bullet.angle -= MISSILE_TURN_RATE * dt;
+                    if (time_alive < PHASE_1_DURATION) {
+                        bullet.angle -= MISSILE_TURN_RATE * dt;
 
-                    const rads = std.math.degreesToRadians(bullet.angle - 90);
-                    bullet.velocity.x *= LAUNCH_DRAG;
-                    bullet.velocity.y *= LAUNCH_DRAG;
-                    const speed = rl.Vector2.length(bullet.velocity);
-                    bullet.velocity.x = std.math.cos(rads) * speed;
-                    bullet.velocity.y = std.math.sin(rads) * speed;
-                } else {
-                    const rads = std.math.degreesToRadians(ship.rotation);
-                    bullet.velocity.x += std.math.cos(rads) * BOOST_ACCEL * dt;
-                    bullet.velocity.y += std.math.sin(rads) * BOOST_ACCEL * dt;
+                        const rads = std.math.degreesToRadians(bullet.angle - 90);
+                        bullet.velocity.x *= LAUNCH_DRAG;
+                        bullet.velocity.y *= LAUNCH_DRAG;
+                        const speed = rl.Vector2.length(bullet.velocity);
+                        bullet.velocity.x = std.math.cos(rads) * speed;
+                        bullet.velocity.y = std.math.sin(rads) * speed;
+                    } else {
+                        const rads = std.math.degreesToRadians(ship.rotation);
+                        bullet.velocity.x += std.math.cos(rads) * BOOST_ACCEL * dt;
+                        bullet.velocity.y += std.math.sin(rads) * BOOST_ACCEL * dt;
 
-                    const MAX_SPEED = 1000.0;
-                    const speed = rl.Vector2.length(bullet.velocity);
-                    if (speed > MAX_SPEED) {
-                        const scale = MAX_SPEED / speed;
-                        bullet.velocity.x *= scale;
-                        bullet.velocity.y *= scale;
+                        const MAX_SPEED = 1000.0;
+                        const speed = rl.Vector2.length(bullet.velocity);
+                        if (speed > MAX_SPEED) {
+                            const scale = MAX_SPEED / speed;
+                            bullet.velocity.x *= scale;
+                            bullet.velocity.y *= scale;
+                        }
                     }
                 }
 
@@ -270,12 +297,17 @@ pub const Ship = struct {
                 if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
                     // bullet hit asteroid
 
-                    particles_mod.spawn(particles, asteroid.position, .explosion);
+                    if (bullet.type == .normal) {
+                        particles_mod.spawn(particles, asteroid.position, .explosion);
+                    } else if (bullet.type == .missile) {
+                        particles_mod.spawn(particles, asteroid.position, .big_explosion);
+                    }
 
                     bullet.active = false;
                     asteroid.active = false;
 
-                    if (asteroid.radius > 20.0) {
+                    // if normal bullet, split the asteroid, if not (missile), destroy it
+                    if (asteroid.radius > 20.0 and bullet.type == .normal) {
                         const new_size = asteroid.radius / 2.0;
 
                         asteroid_mod.spawn(
@@ -300,7 +332,11 @@ pub const Ship = struct {
 
         for (bullets) |b| {
             if (b.active) {
-                rl.drawCircleV(b.position, 2.0, .ray_white);
+                if (b.type == .normal) {
+                    rl.drawCircleV(b.position, 2.0, .ray_white);
+                } else if (b.type == .missile) {
+                    rl.drawCircleV(b.position, 4.0, .yellow);
+                }
             }
         }
     }

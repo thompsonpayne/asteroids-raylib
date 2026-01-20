@@ -4,7 +4,8 @@ pub const MAX_BULLETS = 50;
 pub const MAX_MISSLES = 10;
 pub const MAX_ASTEROIDS = 60;
 pub const INIT_ASTEROIDS = 8;
-pub const BULLET_SPEED = 200.0;
+pub const BULLET_SPEED = 500.0;
+pub const MISSILE_SPEED = 200.0;
 pub const BULLET_LIFE = 5.5; // seconds
 
 pub const ROTATION_SPEED: f32 = 300.0; // degree per second

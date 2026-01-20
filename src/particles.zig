@@ -7,6 +7,7 @@ const MAX_PARTICLES = utils.MAX_PARTICLES;
 const DRAG = utils.DRAG;
 
 const ParticleType = enum {
+    big_explosion,
     explosion,
     sparks,
     debris,
@@ -43,6 +44,17 @@ const EXPLOSION_CONFIG: ParticleConfig = .{
     .size_max = 6,
     .color_start = .yellow,
     .color_end = .{ .r = 255, .g = 69, .b = 0, .a = 255 },
+};
+
+const BIG_EXPLOSION_CONFIG: ParticleConfig = .{
+    .speed_min = 100,
+    .speed_max = 500,
+    .lifetime_min = 0.5,
+    .lifetime_max = 1,
+    .size_min = 2,
+    .size_max = 15,
+    .color_start = .{ .r = 255, .g = 255, .b = 200, .a = 255 },
+    .color_end = .{ .r = 200, .g = 40, .b = 0, .a = 255 },
 };
 
 const SPARKS_CONFIG: ParticleConfig = .{
@@ -89,6 +101,7 @@ fn getConfig(particle_type: ParticleType) ParticleConfig {
         .explosion => EXPLOSION_CONFIG,
         .sparks => SPARKS_CONFIG,
         .debris => DEBRIS_CONFIG,
+        .big_explosion => BIG_EXPLOSION_CONFIG,
     };
 }
 
@@ -100,6 +113,7 @@ pub fn spawn(
     const config = getConfig(particle_type);
 
     const count = switch (particle_type) {
+        .big_explosion => @as(usize, 30),
         .explosion => @as(usize, 20),
         .sparks => @as(usize, 10),
         .debris => @as(usize, 6),
