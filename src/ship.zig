@@ -2,6 +2,9 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
+const camera_mod = @import("camera.zig");
+const Camera = camera_mod.Camera;
+
 const text_mod = @import("text.zig");
 
 const asteroid_mod = @import("asteroid.zig");
@@ -193,6 +196,7 @@ pub const Ship = struct {
         asteroids: *[MAX_ASTEROIDS]Asteroid,
         particles: *[MAX_PARTICLES]Particle,
         text_list: *std.ArrayList(text_mod.Text),
+        camera: *Camera,
         dt: f32,
     ) !void {
         if (rl.isKeyPressed(.space) and rl.isKeyUp(.left_shift)) {
@@ -311,8 +315,10 @@ pub const Ship = struct {
 
                     if (bullet.type == .normal) {
                         particles_mod.spawn(particles, asteroid.position, .explosion);
+                        camera.trigger(5.0, 0.25);
                     } else if (bullet.type == .missile) {
                         particles_mod.spawn(particles, asteroid.position, .big_explosion);
+                        camera.trigger(15.0, 0.25);
                     }
 
                     bullet.active = false;
@@ -353,7 +359,7 @@ pub const Ship = struct {
         }
     }
 
-    pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle) void {
+    pub fn handleAsteroidCollision(self: *Ship, asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle, camera: *Camera) void {
         for (asteroids) |*a| {
             if (!a.active) continue;
 
@@ -368,6 +374,7 @@ pub const Ship = struct {
                     rl.Vector2.scale(normal, self.radius),
                 );
                 particles_mod.spawn(particles, collision_point, .sparks);
+                camera.trigger(15.0, 0.25);
 
                 const overlap = (self.radius + a.radius) - distance;
 

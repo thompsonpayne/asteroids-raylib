@@ -6,8 +6,11 @@ const asteroid_mod = @import("asteroid.zig");
 const Asteroid = asteroid_mod.Asteroid;
 const bullet_mod = @import("bullet.zig");
 const Bullet = bullet_mod.Bullet;
+const camera_mod = @import("camera.zig");
+const Camera = camera_mod.Camera;
 const game_state_mod = @import("game_state.zig");
 const GameState = game_state_mod.GameState;
+const TitleScreen = game_state_mod.TitleScreen;
 const particles_mod = @import("particles.zig");
 const Particle = particles_mod.Particle;
 const ship_mod = @import("ship.zig");
@@ -21,7 +24,6 @@ const SCREEN_HEIGHT = utils.SCREEN_HEIGHT;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const ACCELERATION = utils.ACCELERATION;
-const TitleScreen = game_state_mod.TitleScreen;
 
 pub fn main() !void {
     var bullets: [MAX_BULLETS]Bullet = bullet_mod.init();
@@ -29,6 +31,7 @@ pub fn main() !void {
     var particles: [MAX_PARTICLES]Particle = particles_mod.init();
     var game_state: GameState = .title;
     var title_screen = TitleScreen.init();
+    var camera = Camera.init();
 
     var gpa = std.heap.DebugAllocator(.{}){};
     defer {
@@ -57,7 +60,7 @@ pub fn main() !void {
         const dt = rl.getFrameTime();
 
         rl.beginDrawing();
-        defer rl.endDrawing();
+        rl.clearBackground(.black);
 
         switch (game_state) {
             .title => {
@@ -73,19 +76,12 @@ pub fn main() !void {
                 rl.drawText("Haha loser!", 600, 450, 20.0, .red);
             },
             .playing => {
+                camera.update(dt);
+
+                camera.begin();
+
                 ship.handleMovement(dt);
                 try ship.draw();
-
-                // debug
-                const speed = rl.Vector2.length(ship.velocity);
-                rl.drawText(
-                    rl.textFormat("Speed: %.2f", .{speed}),
-                    SCREEN_WIDTH - 200.0,
-                    10,
-                    20,
-                    .white,
-                );
-                rl.drawFPS(10, 10);
 
                 // draw asteroids
                 asteroid_mod.draw(&asteroids, dt);
@@ -97,9 +93,10 @@ pub fn main() !void {
                     &asteroids,
                     &particles,
                     &text_list,
+                    &camera,
                     dt,
                 );
-                ship.handleAsteroidCollision(&asteroids, &particles);
+                ship.handleAsteroidCollision(&asteroids, &particles, &camera);
 
                 particles_mod.update(&particles, dt);
 
@@ -115,13 +112,26 @@ pub fn main() !void {
                     }
                 }
 
+                particles_mod.draw(&particles);
+
+                camera.end();
+
+                // debug - UI elements (outside camera)
+                const speed = rl.Vector2.length(ship.velocity);
+                rl.drawText(
+                    rl.textFormat("Speed: %.2f", .{speed}),
+                    SCREEN_WIDTH - 200.0,
+                    10,
+                    20,
+                    .white,
+                );
+                rl.drawFPS(10, 10);
+
                 const text_info = try std.fmt.bufPrintZ(&print_buf, "Text items: {d}\n", .{text_list.items.len});
                 rl.drawText(text_info, 10, SCREEN_HEIGHT - 20, 14.0, .light_gray);
-
-                particles_mod.draw(&particles);
             },
         }
 
-        rl.clearBackground(.black);
+        rl.endDrawing();
     }
 }

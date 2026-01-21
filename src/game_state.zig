@@ -74,7 +74,7 @@ pub const TitleScreen = struct {
             try rl.getFontDefault(),
             TITLE,
             .{ .x = (SCREEN_WIDTH - title_dim.x) / 2.0, .y = (SCREEN_HEIGHT - title_dim.y) / 2.0 },
-            FONT_SIZE,
+            FONT_SIZE * 2,
             SPACING,
             .ray_white,
         );
