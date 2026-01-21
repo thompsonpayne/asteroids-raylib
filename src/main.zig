@@ -78,43 +78,45 @@ pub fn main() !void {
             .playing => {
                 camera.update(dt);
 
-                camera.begin();
+                {
+                    camera.begin();
 
-                ship.handleMovement(dt);
-                try ship.draw();
+                    ship.handleMovement(dt);
+                    try ship.draw();
 
-                // draw asteroids
-                asteroid_mod.draw(&asteroids, dt);
-                asteroid_mod.handleCollisionOnEachOther(&asteroids, &particles);
+                    // draw asteroids
+                    asteroid_mod.draw(&asteroids, dt);
+                    asteroid_mod.handleCollisionOnEachOther(&asteroids, &particles);
 
-                try ship.handleShooting(
-                    allocator,
-                    &bullets,
-                    &asteroids,
-                    &particles,
-                    &text_list,
-                    &camera,
-                    dt,
-                );
-                ship.handleAsteroidCollision(&asteroids, &particles, &camera);
+                    try ship.handleShooting(
+                        allocator,
+                        &bullets,
+                        &asteroids,
+                        &particles,
+                        &text_list,
+                        &camera,
+                        dt,
+                    );
+                    ship.handleAsteroidCollision(&asteroids, &particles, &camera);
 
-                particles_mod.update(&particles, dt);
+                    particles_mod.update(&particles, dt);
 
-                var i: usize = 0;
-                while (i < text_list.items.len) {
-                    var item = &text_list.items[i];
-                    item.age(dt);
-                    item.draw();
-                    if (item.isExpired()) {
-                        _ = text_list.swapRemove(i);
-                    } else {
-                        i += 1;
+                    var i: usize = 0;
+                    while (i < text_list.items.len) {
+                        var item = &text_list.items[i];
+                        item.age(dt);
+                        item.draw();
+                        if (item.isExpired()) {
+                            _ = text_list.swapRemove(i);
+                        } else {
+                            i += 1;
+                        }
                     }
+
+                    particles_mod.draw(&particles);
+
+                    camera.end();
                 }
-
-                particles_mod.draw(&particles);
-
-                camera.end();
 
                 // debug - UI elements (outside camera)
                 const speed = rl.Vector2.length(ship.velocity);
@@ -127,7 +129,11 @@ pub fn main() !void {
                 );
                 rl.drawFPS(10, 10);
 
-                const text_info = try std.fmt.bufPrintZ(&print_buf, "Text items: {d}\n", .{text_list.items.len});
+                const text_info = try std.fmt.bufPrintZ(
+                    &print_buf,
+                    "Text items: {d}\n",
+                    .{text_list.items.len},
+                );
                 rl.drawText(text_info, 10, SCREEN_HEIGHT - 20, 14.0, .light_gray);
             },
         }

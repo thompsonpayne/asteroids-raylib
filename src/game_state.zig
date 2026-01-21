@@ -1,5 +1,7 @@
 const std = @import("std");
+
 const rl = @import("raylib");
+
 const utils = @import("utils.zig");
 const SCREEN_WIDTH = utils.SCREEN_WIDTH;
 const SCREEN_HEIGHT = utils.SCREEN_HEIGHT;

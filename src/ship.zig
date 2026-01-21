@@ -2,17 +2,15 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
-const camera_mod = @import("camera.zig");
-const Camera = camera_mod.Camera;
-
-const text_mod = @import("text.zig");
-
 const asteroid_mod = @import("asteroid.zig");
 const Asteroid = asteroid_mod.Asteroid;
 const bullet_mod = @import("bullet.zig");
 const Bullet = bullet_mod.Bullet;
+const camera_mod = @import("camera.zig");
+const Camera = camera_mod.Camera;
 const particles_mod = @import("particles.zig");
 const Particle = particles_mod.Particle;
+const text_mod = @import("text.zig");
 const utils = @import("utils.zig");
 const ROTATION_SPEED = utils.ROTATION_SPEED;
 const ACCELERATION = utils.ACCELERATION;
@@ -25,7 +23,9 @@ const BULLET_SPEED = utils.BULLET_SPEED;
 const MISSILE_SPEED = utils.MISSILE_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
+const MAX_MISSLES = utils.MAX_MISSLES;
 const wrapObject = utils.wrapObject;
+
 // --- CONSTANTS FOR BEHAVIOR ---
 const PHASE_1_DURATION = 0.4; // Seconds to curve/slow down
 const MISSILE_TURN_RATE = 90.0; // How fast it curves initially
@@ -39,6 +39,8 @@ pub const Ship = struct {
     texture: rl.Texture2D,
     thrusting: bool,
     radius: f32,
+    missiles_ammo: u16,
+    reloading_time: f32,
 
     pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
         const scale = 0.1;
@@ -51,6 +53,8 @@ pub const Ship = struct {
             .texture = texture,
             .thrusting = false,
             .radius = ship_width / 4.5,
+            .missiles_ammo = MAX_MISSLES,
+            .reloading_time = 0,
         };
     }
 
@@ -154,6 +158,25 @@ pub const Ship = struct {
             self.rotation,
             .white,
         );
+
+        var ammo_buf: [128]u8 = undefined;
+        const ammo = try std.fmt.bufPrintZ(&ammo_buf, "Missiles:{d}", .{self.missiles_ammo});
+
+        // var reloading_buf: [128]u8 = undefined;
+        // const reloading_time = try std.fmt.bufPrintZ(&reloading_buf, "{d}", .{self.reloading_time});
+
+        const color: rl.Color = if (self.missiles_ammo == 0) .red else .green;
+        rl.drawText(ammo, SCREEN_WIDTH - 200, SCREEN_HEIGHT - 30, 20.0, color);
+
+        if (self.reloading_time > 0) {
+            rl.drawText(
+                "Reloading",
+                @intFromFloat(self.position.x),
+                @intFromFloat(self.position.y),
+                16.0,
+                .ray_white,
+            );
+        }
     }
 
     pub fn handleMovement(self: *Ship, dt: f32) void {
@@ -190,7 +213,7 @@ pub const Ship = struct {
     }
 
     pub fn handleShooting(
-        ship: *Ship,
+        self: *Ship,
         allocator: std.mem.Allocator,
         bullets: *[MAX_BULLETS]Bullet,
         asteroids: *[MAX_ASTEROIDS]Asteroid,
@@ -210,12 +233,12 @@ pub const Ship = struct {
                     bullet.life_time = BULLET_LIFE;
                     bullet.type = .normal;
 
-                    bullet.position = ship.position;
-                    bullet.rotation = ship.rotation;
+                    bullet.position = self.position;
+                    bullet.rotation = self.rotation;
 
-                    const rads = std.math.degreesToRadians(ship.rotation);
-                    bullet.velocity.x = (std.math.cos(rads) * BULLET_SPEED) + ship.velocity.x;
-                    bullet.velocity.y = (std.math.sin(rads) * BULLET_SPEED) + ship.velocity.y;
+                    const rads = std.math.degreesToRadians(self.rotation);
+                    bullet.velocity.x = (std.math.cos(rads) * BULLET_SPEED) + self.velocity.x;
+                    bullet.velocity.y = (std.math.sin(rads) * BULLET_SPEED) + self.velocity.y;
 
                     break :blk;
                 }
@@ -227,23 +250,39 @@ pub const Ship = struct {
             blk: for (0..MAX_BULLETS) |i| {
                 var bullet = &bullets[i];
 
-                if (!bullet.active) {
+                if (self.reloading_time == 0 and self.missiles_ammo == 0) {
+                    self.missiles_ammo = MAX_MISSLES;
+                }
+
+                if (!bullet.active and self.missiles_ammo > 0 and self.reloading_time == 0.0) {
                     // wake bullet up
                     bullet.active = true;
                     bullet.life_time = BULLET_LIFE;
                     bullet.type = .missile;
 
-                    bullet.position = ship.position;
-                    bullet.rotation = ship.rotation;
+                    bullet.position = self.position;
+                    bullet.rotation = self.rotation;
 
-                    const rads = std.math.degreesToRadians(ship.rotation);
-                    bullet.velocity.x = (std.math.cos(rads) * MISSILE_SPEED) + ship.velocity.x;
-                    bullet.velocity.y = (std.math.sin(rads) * MISSILE_SPEED) + ship.velocity.y;
+                    const rads = std.math.degreesToRadians(self.rotation);
+                    bullet.velocity.x = (std.math.cos(rads) * MISSILE_SPEED) + self.velocity.x;
+                    bullet.velocity.y = (std.math.sin(rads) * MISSILE_SPEED) + self.velocity.y;
+
+                    if (self.missiles_ammo > 0) {
+                        self.missiles_ammo -= 1;
+                    }
+
+                    if (self.missiles_ammo == 0) {
+                        // trigger timeout for resetting missiles ammo
+                        self.reloading_time = 3.0;
+                    }
 
                     break :blk;
                 }
             }
         }
+        if (self.reloading_time > 0.0) {
+            self.reloading_time -= dt;
+        } else self.reloading_time = 0.0;
 
         blk: for (0..MAX_BULLETS) |b_idx| {
             var bullet = &bullets[b_idx];
@@ -263,7 +302,7 @@ pub const Ship = struct {
                         bullet.velocity.x = std.math.cos(rads) * speed;
                         bullet.velocity.y = std.math.sin(rads) * speed;
                     } else {
-                        const rads = std.math.degreesToRadians(ship.rotation);
+                        const rads = std.math.degreesToRadians(self.rotation);
                         bullet.velocity.x += std.math.cos(rads) * BOOST_ACCEL * dt;
                         bullet.velocity.y += std.math.sin(rads) * BOOST_ACCEL * dt;
 

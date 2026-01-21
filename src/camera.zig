@@ -1,5 +1,7 @@
-const rl = @import("raylib");
 const std = @import("std");
+
+const rl = @import("raylib");
+
 const SCREEN_WIDTH = 1280;
 const SCREEN_HEIGHT = 720;
 
