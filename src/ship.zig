@@ -41,6 +41,8 @@ pub const Ship = struct {
     radius: f32,
     missiles_ammo: u16,
     reloading_time: f32,
+    health: u8,
+    hit_timer: f32,
 
     pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
         const scale = 0.1;
@@ -55,6 +57,8 @@ pub const Ship = struct {
             .radius = ship_width / 4.5,
             .missiles_ammo = MAX_MISSLES,
             .reloading_time = 0,
+            .health = 100,
+            .hit_timer = 0,
         };
     }
 
@@ -176,6 +180,29 @@ pub const Ship = struct {
                 16.0,
                 .ray_white,
             );
+        }
+
+        if (self.hit_timer > 0) {
+            self.hit_timer -= rl.getFrameTime();
+            const blink_speed = 15.0;
+            const phase = @mod(self.hit_timer * blink_speed, 1.0);
+            if (phase > 0.5) {
+                const overlay_dest = rl.Rectangle{
+                    .width = dest.width,
+                    .height = dest.height,
+                    .x = self.position.x,
+                    .y = self.position.y,
+                };
+
+                rl.drawTexturePro(
+                    texture,
+                    source,
+                    overlay_dest,
+                    origin,
+                    self.rotation,
+                    .{ .r = 255, .g = 0, .b = 0, .a = 150 },
+                );
+            }
         }
     }
 
@@ -403,6 +430,13 @@ pub const Ship = struct {
             if (!a.active) continue;
 
             if (rl.checkCollisionCircles(self.position, self.radius, a.position, a.radius)) {
+                // NOTE: Ship hit asteroid
+
+                if (self.health > 0) {
+                    self.health -= 20;
+                }
+                self.hit_timer = 1.0;
+
                 const delta = rl.Vector2.subtract(self.position, a.position);
                 const distance = rl.Vector2.length(delta);
                 // normalize vector (we need direction, not magnitude)
@@ -417,13 +451,13 @@ pub const Ship = struct {
 
                 const overlap = (self.radius + a.radius) - distance;
 
-                // NOTE: push apart handling
+                // push apart handling
                 // create a vector of half the overlap length in the direction of collision
                 const push_vector = rl.Vector2.scale(normal, overlap * 0.5);
                 self.position = rl.Vector2.add(self.position, push_vector);
                 a.position = rl.Vector2.subtract(a.position, push_vector);
 
-                // NOTE: bounce handling
+                // bounce handling
                 // how fast along the collision axis
                 const relative_vel = rl.Vector2.subtract(self.velocity, a.velocity);
 

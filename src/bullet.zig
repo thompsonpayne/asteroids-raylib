@@ -16,7 +16,6 @@ pub const Bullet = struct {
     rotation: f32,
     reloading: bool,
     life_time: f32, // seconds to live
-
 };
 
 pub fn init() [MAX_BULLETS]Bullet {
