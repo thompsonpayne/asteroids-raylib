@@ -19,10 +19,23 @@ const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const ACCELERATION = utils.ACCELERATION;
 
+const text_mod = @import("text.zig");
+
 pub fn main() !void {
     var bullets: [MAX_BULLETS]Bullet = bullet_mod.init();
     var asteroids: [MAX_ASTEROIDS]Asteroid = asteroid_mod.init();
     var particles: [MAX_PARTICLES]Particle = particles_mod.init();
+
+    var gpa = std.heap.DebugAllocator(.{}){};
+    defer {
+        if (gpa.deinit() == .leak) {
+            std.debug.print("Leaking!!", .{});
+        }
+    }
+    const allocator = gpa.allocator();
+
+    var text_list = try std.ArrayList(text_mod.Text).initCapacity(allocator, 512);
+    defer text_list.deinit(allocator);
 
     rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "DAsteroids");
     defer rl.closeWindow();
@@ -41,8 +54,8 @@ pub fn main() !void {
         defer rl.endDrawing();
 
         ship.handleMovement(dt);
-
         try ship.draw();
+
         // debug
         const speed = rl.Vector2.length(ship.velocity);
         rl.drawText(
@@ -58,11 +71,29 @@ pub fn main() !void {
         asteroid_mod.draw(&asteroids, dt);
         asteroid_mod.handleCollisionOnEachOther(&asteroids, &particles);
 
-        ship.handleShooting(&bullets, &asteroids, &particles, dt);
+        try ship.handleShooting(
+            allocator,
+            &bullets,
+            &asteroids,
+            &particles,
+            &text_list,
+            dt,
+        );
         ship.handleAsteroidCollision(&asteroids, &particles);
 
         particles_mod.update(&particles, dt);
 
+        var i: usize = 0;
+        while (i < text_list.items.len) {
+            var item = &text_list.items[i];
+            item.age(dt);
+            item.draw();
+            if (item.isExpired()) {
+                _ = text_list.swapRemove(i);
+            } else {
+                i += 1;
+            }
+        }
         rl.clearBackground(.black);
 
         particles_mod.draw(&particles);

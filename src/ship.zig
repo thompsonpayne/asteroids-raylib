@@ -2,6 +2,8 @@ const std = @import("std");
 
 const rl = @import("raylib");
 
+const text_mod = @import("text.zig");
+
 const asteroid_mod = @import("asteroid.zig");
 const Asteroid = asteroid_mod.Asteroid;
 const bullet_mod = @import("bullet.zig");
@@ -186,11 +188,13 @@ pub const Ship = struct {
 
     pub fn handleShooting(
         ship: *Ship,
+        allocator: std.mem.Allocator,
         bullets: *[MAX_BULLETS]Bullet,
         asteroids: *[MAX_ASTEROIDS]Asteroid,
         particles: *[MAX_PARTICLES]Particle,
+        text_list: *std.ArrayList(text_mod.Text),
         dt: f32,
-    ) void {
+    ) !void {
         if (rl.isKeyPressed(.space) and rl.isKeyUp(.left_shift)) {
             // NOTE: shooting normal bullets
             blk: for (0..MAX_BULLETS) |i| {
@@ -203,7 +207,7 @@ pub const Ship = struct {
                     bullet.type = .normal;
 
                     bullet.position = ship.position;
-                    bullet.angle = ship.rotation;
+                    bullet.rotation = ship.rotation;
 
                     const rads = std.math.degreesToRadians(ship.rotation);
                     bullet.velocity.x = (std.math.cos(rads) * BULLET_SPEED) + ship.velocity.x;
@@ -226,7 +230,7 @@ pub const Ship = struct {
                     bullet.type = .missile;
 
                     bullet.position = ship.position;
-                    bullet.angle = ship.rotation;
+                    bullet.rotation = ship.rotation;
 
                     const rads = std.math.degreesToRadians(ship.rotation);
                     bullet.velocity.x = (std.math.cos(rads) * MISSILE_SPEED) + ship.velocity.x;
@@ -241,15 +245,14 @@ pub const Ship = struct {
             var bullet = &bullets[b_idx];
 
             if (bullet.active) {
-
-                // prototype missiles
+                // NOTE: add curve to trajectory for missiles
                 if (bullet.type == .missile) {
                     const time_alive = BULLET_LIFE - bullet.life_time;
 
                     if (time_alive < PHASE_1_DURATION) {
-                        bullet.angle -= MISSILE_TURN_RATE * dt;
+                        bullet.rotation -= MISSILE_TURN_RATE * dt;
 
-                        const rads = std.math.degreesToRadians(bullet.angle - 90);
+                        const rads = std.math.degreesToRadians(bullet.rotation - 90);
                         bullet.velocity.x *= LAUNCH_DRAG;
                         bullet.velocity.y *= LAUNCH_DRAG;
                         const speed = rl.Vector2.length(bullet.velocity);
@@ -296,6 +299,15 @@ pub const Ship = struct {
 
                 if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
                     // bullet hit asteroid
+
+                    // spawn text
+                    try text_list.append(allocator, text_mod.Text{
+                        .active = true,
+                        .content = "Hell yeah!",
+                        .life_time = 1.0,
+                        .x = @intFromFloat(asteroid.position.x),
+                        .y = @intFromFloat(asteroid.position.y),
+                    });
 
                     if (bullet.type == .normal) {
                         particles_mod.spawn(particles, asteroid.position, .explosion);

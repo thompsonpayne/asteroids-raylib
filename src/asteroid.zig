@@ -1,4 +1,5 @@
 const std = @import("std");
+const text_mod = @import("text.zig");
 const rand = std.crypto.random;
 
 const rl = @import("raylib");
