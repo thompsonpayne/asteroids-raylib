@@ -47,12 +47,12 @@ const EXPLOSION_CONFIG: ParticleConfig = .{
 };
 
 const BIG_EXPLOSION_CONFIG: ParticleConfig = .{
-    .speed_min = 100,
-    .speed_max = 500,
-    .lifetime_min = 0.5,
-    .lifetime_max = 1,
-    .size_min = 2,
-    .size_max = 15,
+    .speed_min = 75,
+    .speed_max = 200,
+    .lifetime_min = 0.6,
+    .lifetime_max = 2,
+    .size_min = 3,
+    .size_max = 17,
     .color_start = .{ .r = 255, .g = 255, .b = 200, .a = 255 },
     .color_end = .{ .r = 200, .g = 40, .b = 0, .a = 255 },
 };
@@ -113,7 +113,7 @@ pub fn spawn(
     const config = getConfig(particle_type);
 
     const count = switch (particle_type) {
-        .big_explosion => @as(usize, 30),
+        .big_explosion => @as(usize, 50),
         .explosion => @as(usize, 20),
         .sparks => @as(usize, 10),
         .debris => @as(usize, 6),
@@ -173,7 +173,7 @@ pub fn draw(particles: *[MAX_PARTICLES]Particle) void {
 
             const speed = std.math.sqrt(p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y);
 
-            const config: ParticleConfig = if (speed > 250) SPARKS_CONFIG else if (p.initial_size > 5) DEBRIS_CONFIG else EXPLOSION_CONFIG;
+            const config: ParticleConfig = if (speed > 250) SPARKS_CONFIG else if (p.size < 5) DEBRIS_CONFIG else if (p.size > 12) BIG_EXPLOSION_CONFIG else EXPLOSION_CONFIG;
 
             p.color = utils.lerpColor(config.color_start, config.color_end, 1.0 - life_ratio);
 
