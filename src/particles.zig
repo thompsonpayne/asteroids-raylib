@@ -20,6 +20,7 @@ pub const Particle = struct {
     lifetime: f32,
     max_lifetime: f32,
     color: rl.Color,
+    radius: ?f32,
     size: f32,
     initial_size: f32,
     active: bool,
@@ -33,6 +34,7 @@ const ParticleConfig = struct {
     lifetime_max: f32,
     size_min: f32,
     size_max: f32,
+    radius: ?f32,
     color_start: rl.Color,
     color_end: rl.Color,
 };
@@ -43,6 +45,7 @@ const EXPLOSION_CONFIG: ParticleConfig = .{
     .lifetime_min = 0.3,
     .lifetime_max = 0.5,
     .size_min = 3,
+    .radius = null,
     .size_max = 6,
     .color_start = .yellow,
     .color_end = .{ .r = 255, .g = 69, .b = 0, .a = 255 },
@@ -55,6 +58,7 @@ const BIG_EXPLOSION_CONFIG: ParticleConfig = .{
     .lifetime_max = 2,
     .size_min = 3,
     .size_max = 17,
+    .radius = 30.0,
     .color_start = .{ .r = 255, .g = 255, .b = 200, .a = 255 },
     .color_end = .{ .r = 200, .g = 40, .b = 0, .a = 255 },
 };
@@ -66,6 +70,7 @@ const SPARKS_CONFIG: ParticleConfig = .{
     .lifetime_max = 0.2,
     .size_min = 2,
     .size_max = 3,
+    .radius = null,
     .color_start = .white,
     .color_end = .orange,
 };
@@ -77,6 +82,7 @@ const DEBRIS_CONFIG: ParticleConfig = .{
     .lifetime_max = 1.0,
     .size_min = 4,
     .size_max = 8,
+    .radius = null,
     .color_start = .{ .r = 180, .g = 180, .b = 180, .a = 255 },
     .color_end = .{ .r = 100, .g = 100, .b = 100, .a = 255 },
 };
@@ -88,6 +94,7 @@ const THRUST_SPARKLES_CONFIG: ParticleConfig = .{
     .lifetime_max = 0.3,
     .size_min = 1,
     .size_max = 2.5,
+    .radius = 0,
     .color_start = .white,
     .color_end = .sky_blue,
 };
@@ -155,6 +162,7 @@ pub fn spawn(
             p.lifetime = std.crypto.random.float(f32) * (config.lifetime_max - config.lifetime_min) + config.lifetime_min;
             p.max_lifetime = p.lifetime;
             p.color = config.color_start;
+            p.radius = config.radius;
         }
     }
 }

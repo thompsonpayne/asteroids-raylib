@@ -85,7 +85,12 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
     }
 }
 
-pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid, particles: *[MAX_PARTICLES]Particle) void {
+pub fn handleCollisionOnEachOtherAndParticles(
+    allocator: std.mem.Allocator,
+    asteroids: *[MAX_ASTEROIDS]Asteroid,
+    particles: *[MAX_PARTICLES]Particle,
+    text_list: *std.ArrayList(text_mod.Text),
+) !void {
     for (0..MAX_ASTEROIDS - 1) |i| {
         var a1 = &asteroids[i];
         if (!a1.active) continue;
@@ -132,6 +137,40 @@ pub fn handleCollisionOnEachOther(asteroids: *[MAX_ASTEROIDS]Asteroid, particles
                 const impulse = rl.Vector2.scale(normal, scale_factor);
                 a1.velocity = rl.Vector2.add(a1.velocity, rl.Vector2.scale(impulse, 1.0 / (a1.radius * a1.radius)));
                 a2.velocity = rl.Vector2.subtract(a2.velocity, rl.Vector2.scale(impulse, 1.0 / (a2.radius * a2.radius)));
+            }
+        }
+
+        // collision from big explosions particles
+        for (particles) |p| {
+            if (p.particle_type != .big_explosion or !p.active or p.radius == null) continue;
+
+            if (rl.checkCollisionCircles(a1.position, a1.radius, p.position, p.radius.?)) {
+                try text_list.append(allocator, text_mod.Text{
+                    .active = true,
+                    .content = "Hell yeah!",
+                    .life_time = 1.0,
+                    .x = @intFromFloat(a1.position.x),
+                    .y = @intFromFloat(a1.position.y),
+                });
+
+                particles_mod.spawn(particles, a1.position, .explosion);
+
+                a1.active = false;
+
+                // if normal bullet, split the a1, if not (missile), destroy it
+                if (a1.radius > 20.0) {
+                    const new_size = a1.radius / 2.0;
+
+                    for (0..3) |_| {
+                        spawn(
+                            asteroids,
+                            .{ .x = a1.position.x - 20, .y = a1.position.y - 20 },
+                            new_size,
+                        );
+                    }
+
+                    particles_mod.spawn(particles, a1.position, .debris);
+                }
             }
         }
     }
