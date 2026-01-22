@@ -277,10 +277,6 @@ pub const Ship = struct {
             blk: for (0..MAX_BULLETS) |i| {
                 var bullet = &bullets[i];
 
-                if (self.reloading_time == 0 and self.missiles_ammo == 0) {
-                    self.missiles_ammo = MAX_MISSLES;
-                }
-
                 if (!bullet.active and self.missiles_ammo > 0 and self.reloading_time == 0.0) {
                     // wake bullet up
                     bullet.active = true;
@@ -309,7 +305,10 @@ pub const Ship = struct {
         }
         if (self.reloading_time > 0.0) {
             self.reloading_time -= dt;
-        } else self.reloading_time = 0.0;
+        } else if (self.missiles_ammo == 0) {
+            self.reloading_time = 0.0;
+            self.missiles_ammo = MAX_MISSLES;
+        }
 
         blk: for (0..MAX_BULLETS) |b_idx| {
             var bullet = &bullets[b_idx];
