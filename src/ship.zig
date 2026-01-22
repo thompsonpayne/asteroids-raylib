@@ -421,7 +421,7 @@ pub const Ship = struct {
                     if (asteroid.radius > 20.0 and bullet.type == .normal) {
                         const new_size = asteroid.radius / 2.0;
 
-                        for (0..4) |_| {
+                        for (0..3) |_| {
                             asteroid_mod.spawn(
                                 asteroids,
                                 .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },

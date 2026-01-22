@@ -32,7 +32,7 @@ pub fn init() [MAX_ASTEROIDS]Asteroid {
         const rand_x = @as(f32, @floatFromInt(rl.getRandomValue(0, 800)));
         const rand_y = @as(f32, @floatFromInt(rl.getRandomValue(0, 600)));
 
-        spawn(&asteroids, .{ .x = rand_x, .y = rand_y }, 40.0);
+        spawn(&asteroids, .{ .x = rand_x, .y = rand_y }, 50.0);
     }
 
     return asteroids;

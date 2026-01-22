@@ -78,9 +78,9 @@ pub fn main() !void {
             .playing => {
                 camera.update(dt);
 
+                // NOTE: Camera wrap
+                camera.begin();
                 {
-                    camera.begin();
-
                     ship.handleMovement(dt);
                     try ship.draw(&particles);
 
@@ -114,9 +114,8 @@ pub fn main() !void {
                     }
 
                     particles_mod.draw(&particles);
-
-                    camera.end();
                 }
+                camera.end();
 
                 // debug - UI elements (outside camera)
                 const speed = rl.Vector2.length(ship.velocity);
@@ -129,12 +128,22 @@ pub fn main() !void {
                 );
                 rl.drawFPS(10, 10);
 
-                const text_info = try std.fmt.bufPrintZ(
-                    &print_buf,
-                    "Text items: {d}\n",
-                    .{text_list.items.len},
-                );
-                rl.drawText(text_info, 10, SCREEN_HEIGHT - 20, 14.0, .light_gray);
+                // NOTE: Health display
+                {
+                    const health_text = try std.fmt.bufPrintZ(
+                        &print_buf,
+                        "Health: {d}%\n",
+                        .{ship.health},
+                    );
+                    const color: rl.Color = switch (ship.health) {
+                        0...20 => .red,
+                        21...40 => .orange,
+                        41...60 => .yellow,
+                        61...80 => .green,
+                        else => .dark_green,
+                    };
+                    rl.drawText(health_text, 10, SCREEN_HEIGHT - 20, 20.0, color);
+                }
             },
         }
 
