@@ -86,7 +86,12 @@ pub fn main() !void {
 
                     // draw asteroids
                     asteroid_mod.draw(&asteroids, dt);
-                    try asteroid_mod.handleCollisionOnEachOther(allocator, &asteroids, &particles, &text_list);
+                    try asteroid_mod.handleCollisionWithExternal(
+                        allocator,
+                        &asteroids,
+                        &particles,
+                        &text_list,
+                    );
 
                     try ship.handleShooting(
                         allocator,

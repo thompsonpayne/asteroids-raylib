@@ -85,7 +85,7 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
     }
 }
 
-pub fn handleCollisionOnEachOtherAndParticles(
+pub fn handleCollisionWithExternal(
     allocator: std.mem.Allocator,
     asteroids: *[MAX_ASTEROIDS]Asteroid,
     particles: *[MAX_PARTICLES]Particle,
