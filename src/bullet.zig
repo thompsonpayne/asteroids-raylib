@@ -14,6 +14,7 @@ pub const Bullet = struct {
     velocity: rl.Vector2,
     type: BulletType,
     rotation: f32,
+    snapshot_rotation: f32,
     reloading: bool,
     life_time: f32, // seconds to live
 };
@@ -25,6 +26,7 @@ pub fn init() [MAX_BULLETS]Bullet {
         bullets[i] = Bullet{
             .reloading = false,
             .rotation = 90.0,
+            .snapshot_rotation = 0,
             .active = false,
             .position = .{ .x = 0, .y = 0 },
             .velocity = .{ .x = 0, .y = 0 },

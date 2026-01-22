@@ -30,8 +30,8 @@ const wrapObject = utils.wrapObject;
 // --- CONSTANTS FOR BEHAVIOR ---
 const PHASE_1_DURATION = 0.4; // Seconds to curve/slow down
 const MISSILE_TURN_RATE = 90.0; // How fast it curves initially
-const LAUNCH_DRAG = 0.92; // How fast it slows down initially (0.90 - 0.99)
-const BOOST_ACCEL = 600.0; // How fast it speeds up in Phase 2
+const LAUNCH_DRAG = 0.90; // How fast it slows down initially (0.90 - 0.99)
+const BOOST_ACCEL = 1000.0; // How fast it speeds up in Phase 2
 
 pub const Ship = struct {
     position: rl.Vector2,
@@ -39,7 +39,7 @@ pub const Ship = struct {
     rotation: f32, // direction facing (degree)
     texture: rl.Texture2D,
     thrusting: bool,
-    extra_thrusting: bool,
+    turbo_thrusting: bool,
     radius: f32,
     missiles_ammo: u16,
     reloading_time: f32,
@@ -56,7 +56,7 @@ pub const Ship = struct {
             .rotation = -90,
             .texture = texture,
             .thrusting = false,
-            .extra_thrusting = false,
+            .turbo_thrusting = false,
             .radius = ship_width / 4.5,
             .missiles_ammo = MAX_MISSLES,
             .reloading_time = 0,
@@ -95,7 +95,7 @@ pub const Ship = struct {
             .y = dest.height / 2.0,
         };
 
-        if (self.thrusting or self.extra_thrusting) {
+        if (self.thrusting or self.turbo_thrusting) {
             const rads = std.math.degreesToRadians(self.rotation);
             const cos_t = std.math.cos(rads);
             const sin_t = std.math.sin(rads);
@@ -111,14 +111,14 @@ pub const Ship = struct {
                 .x = self.position.x - forward.x * offset,
                 .y = self.position.y - forward.y * offset,
             };
-            if (self.extra_thrusting) {
-                particles_mod.spawn(particles, tail, .sparks);
+            if (self.turbo_thrusting) {
+                particles_mod.spawn(particles, tail, .thrust_sparkles);
             }
 
             // Flame dimensions
             const flicker = @as(f32, @floatFromInt(rl.getRandomValue(0, 10))) / 20.0; // 0.0 - 0.5
             const flame_len = dest.width * (speed / MAX_SHIP_SPEED + flicker);
-            const flame_width = dest.width * 0.3;
+            const flame_width = if (self.turbo_thrusting) dest.width * 0.4 else dest.width * 0.3;
 
             // Flame tip
             const tip = rl.Vector2{
@@ -214,7 +214,7 @@ pub const Ship = struct {
 
     pub fn handleMovement(self: *Ship, dt: f32) void {
         self.thrusting = false;
-        self.extra_thrusting = false;
+        self.turbo_thrusting = false;
 
         if (rl.isKeyDown(.d)) {
             self.rotation += dt * ROTATION_SPEED;
@@ -245,7 +245,7 @@ pub const Ship = struct {
 
             self.velocity.x += force_x;
             self.velocity.y += force_y;
-            self.extra_thrusting = true;
+            self.turbo_thrusting = true;
         }
 
         self.position.x += self.velocity.x * dt;
@@ -337,6 +337,10 @@ pub const Ship = struct {
                 if (bullet.type == .missile) {
                     const time_alive = BULLET_LIFE - bullet.life_time;
 
+                    if (bullet.snapshot_rotation == 0) {
+                        bullet.snapshot_rotation = self.rotation;
+                    }
+
                     if (time_alive < PHASE_1_DURATION) {
                         bullet.rotation -= MISSILE_TURN_RATE * dt;
 
@@ -346,12 +350,14 @@ pub const Ship = struct {
                         const speed = rl.Vector2.length(bullet.velocity);
                         bullet.velocity.x = std.math.cos(rads) * speed;
                         bullet.velocity.y = std.math.sin(rads) * speed;
+                        // bullet.velocity.x = std.math.cos(rads) + speed / BULLET_SPEED;
+                        // bullet.velocity.y = std.math.sin(rads) + speed / BULLET_SPEED;
                     } else {
-                        const rads = std.math.degreesToRadians(self.rotation);
+                        const rads = std.math.degreesToRadians(bullet.snapshot_rotation);
                         bullet.velocity.x += std.math.cos(rads) * BOOST_ACCEL * dt;
                         bullet.velocity.y += std.math.sin(rads) * BOOST_ACCEL * dt;
 
-                        const MAX_SPEED = 1000.0;
+                        const MAX_SPEED = 1200.0;
                         const speed = rl.Vector2.length(bullet.velocity);
                         if (speed > MAX_SPEED) {
                             const scale = MAX_SPEED / speed;
@@ -368,6 +374,7 @@ pub const Ship = struct {
                 // bullet out of screen, kill bullet
                 if (bullet.position.y > SCREEN_HEIGHT or bullet.position.y < 0 or bullet.position.x > SCREEN_WIDTH or bullet.position.x < 0) {
                     bullet.active = false;
+                    bullet.snapshot_rotation = 0;
                 }
 
                 // age bullet
@@ -376,6 +383,7 @@ pub const Ship = struct {
                 // kill if too old
                 if (bullet.life_time <= 0) {
                     bullet.active = false;
+                    bullet.snapshot_rotation = 0;
                 }
             }
 
@@ -406,23 +414,20 @@ pub const Ship = struct {
                     }
 
                     bullet.active = false;
+                    bullet.snapshot_rotation = 0;
                     asteroid.active = false;
 
                     // if normal bullet, split the asteroid, if not (missile), destroy it
                     if (asteroid.radius > 20.0 and bullet.type == .normal) {
                         const new_size = asteroid.radius / 2.0;
 
-                        asteroid_mod.spawn(
-                            asteroids,
-                            .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
-                            new_size,
-                        );
-
-                        asteroid_mod.spawn(
-                            asteroids,
-                            .{ .x = asteroid.position.x + 20, .y = asteroid.position.y + 20 },
-                            new_size,
-                        );
+                        for (0..4) |_| {
+                            asteroid_mod.spawn(
+                                asteroids,
+                                .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
+                                new_size,
+                            );
+                        }
 
                         particles_mod.spawn(particles, asteroid.position, .debris);
                     }

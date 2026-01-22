@@ -11,6 +11,7 @@ const ParticleType = enum {
     explosion,
     sparks,
     debris,
+    thrust_sparkles,
 };
 
 pub const Particle = struct {
@@ -22,6 +23,7 @@ pub const Particle = struct {
     size: f32,
     initial_size: f32,
     active: bool,
+    particle_type: ParticleType,
 };
 
 const ParticleConfig = struct {
@@ -79,6 +81,17 @@ const DEBRIS_CONFIG: ParticleConfig = .{
     .color_end = .{ .r = 100, .g = 100, .b = 100, .a = 255 },
 };
 
+const THRUST_SPARKLES_CONFIG: ParticleConfig = .{
+    .speed_min = 30,
+    .speed_max = 80,
+    .lifetime_min = 0.15,
+    .lifetime_max = 0.3,
+    .size_min = 1,
+    .size_max = 2.5,
+    .color_start = .white,
+    .color_end = .sky_blue,
+};
+
 pub fn init() [MAX_PARTICLES]Particle {
     var particles: [MAX_PARTICLES]Particle = undefined;
 
@@ -91,6 +104,7 @@ pub fn init() [MAX_PARTICLES]Particle {
         p.color = .dark_gray;
         p.size = 0;
         p.initial_size = 0;
+        p.particle_type = .explosion;
     }
 
     return particles;
@@ -102,6 +116,7 @@ fn getConfig(particle_type: ParticleType) ParticleConfig {
         .sparks => SPARKS_CONFIG,
         .debris => DEBRIS_CONFIG,
         .big_explosion => BIG_EXPLOSION_CONFIG,
+        .thrust_sparkles => THRUST_SPARKLES_CONFIG,
     };
 }
 
@@ -117,6 +132,7 @@ pub fn spawn(
         .explosion => @as(usize, 20),
         .sparks => @as(usize, 10),
         .debris => @as(usize, 6),
+        .thrust_sparkles => @as(usize, 10),
     };
 
     var spawned: usize = 0;
@@ -128,6 +144,7 @@ pub fn spawn(
             const speed = std.crypto.random.float(f32) * (config.speed_max - config.speed_min) + config.speed_min;
 
             p.active = true;
+            p.particle_type = particle_type;
             p.velocity = .{
                 .x = std.math.cos(angle) * speed,
                 .y = std.math.sin(angle) * speed,
@@ -171,9 +188,7 @@ pub fn draw(particles: *[MAX_PARTICLES]Particle) void {
 
             p.size = p.initial_size * size_ratio;
 
-            const speed = std.math.sqrt(p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y);
-
-            const config: ParticleConfig = if (speed > 250) SPARKS_CONFIG else if (p.size < 5) DEBRIS_CONFIG else if (p.size > 12) BIG_EXPLOSION_CONFIG else EXPLOSION_CONFIG;
+            const config = getConfig(p.particle_type);
 
             p.color = utils.lerpColor(config.color_start, config.color_end, 1.0 - life_ratio);
 
