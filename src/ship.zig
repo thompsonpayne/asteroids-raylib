@@ -24,6 +24,7 @@ const MISSILE_SPEED = utils.MISSILE_SPEED;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_MISSLES = utils.MAX_MISSLES;
+const MAX_SHIP_SPEED = utils.MAX_SHIP_SPEED;
 const wrapObject = utils.wrapObject;
 
 // --- CONSTANTS FOR BEHAVIOR ---
@@ -38,6 +39,7 @@ pub const Ship = struct {
     rotation: f32, // direction facing (degree)
     texture: rl.Texture2D,
     thrusting: bool,
+    extra_thrusting: bool,
     radius: f32,
     missiles_ammo: u16,
     reloading_time: f32,
@@ -54,6 +56,7 @@ pub const Ship = struct {
             .rotation = -90,
             .texture = texture,
             .thrusting = false,
+            .extra_thrusting = false,
             .radius = ship_width / 4.5,
             .missiles_ammo = MAX_MISSLES,
             .reloading_time = 0,
@@ -66,7 +69,7 @@ pub const Ship = struct {
         rl.unloadTexture(self.texture);
     }
 
-    pub fn draw(self: *Ship) !void {
+    pub fn draw(self: *Ship, particles: *[MAX_PARTICLES]Particle) !void {
         const texture = self.texture;
 
         const source = rl.Rectangle{
@@ -92,7 +95,7 @@ pub const Ship = struct {
             .y = dest.height / 2.0,
         };
 
-        if (self.thrusting) {
+        if (self.thrusting or self.extra_thrusting) {
             const rads = std.math.degreesToRadians(self.rotation);
             const cos_t = std.math.cos(rads);
             const sin_t = std.math.sin(rads);
@@ -100,16 +103,21 @@ pub const Ship = struct {
             // Ship forward vector (x=cos, y=sin)
             const forward = rl.Vector2{ .x = cos_t, .y = sin_t };
 
+            const speed = rl.Vector2.length(self.velocity);
+
             // Tail position (behind center)
             const offset = dest.width * 0.4;
             const tail = rl.Vector2{
                 .x = self.position.x - forward.x * offset,
                 .y = self.position.y - forward.y * offset,
             };
+            if (self.extra_thrusting) {
+                particles_mod.spawn(particles, tail, .sparks);
+            }
 
             // Flame dimensions
             const flicker = @as(f32, @floatFromInt(rl.getRandomValue(0, 10))) / 20.0; // 0.0 - 0.5
-            const flame_len = dest.width * (0.5 + flicker);
+            const flame_len = dest.width * (speed / MAX_SHIP_SPEED + flicker);
             const flame_width = dest.width * 0.3;
 
             // Flame tip
@@ -128,8 +136,6 @@ pub const Ship = struct {
                 .x = tail.x - perp.x * flame_width * 0.5,
                 .y = tail.y - perp.y * flame_width * 0.5,
             };
-
-            const speed = rl.Vector2.length(self.velocity);
 
             const t = std.math.clamp(speed / ACCELERATION, 0.0, 1.0);
             const outer_color = utils.lerpColor(.red, .sky_blue, t);
@@ -208,6 +214,7 @@ pub const Ship = struct {
 
     pub fn handleMovement(self: *Ship, dt: f32) void {
         self.thrusting = false;
+        self.extra_thrusting = false;
 
         if (rl.isKeyDown(.d)) {
             self.rotation += dt * ROTATION_SPEED;
@@ -227,6 +234,18 @@ pub const Ship = struct {
             self.velocity.x += force_x;
             self.velocity.y += force_y;
             self.thrusting = true;
+        }
+
+        if (rl.isKeyDown(.w) and rl.isKeyDown(.left_shift)) {
+            // thrust and rotation
+            const rads = std.math.degreesToRadians(self.rotation);
+
+            const force_x = std.math.cos(rads) * ACCELERATION * 1.4 * dt;
+            const force_y = std.math.sin(rads) * ACCELERATION * 1.4 * dt;
+
+            self.velocity.x += force_x;
+            self.velocity.y += force_y;
+            self.extra_thrusting = true;
         }
 
         self.position.x += self.velocity.x * dt;

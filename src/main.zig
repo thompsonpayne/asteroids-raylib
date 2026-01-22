@@ -82,7 +82,7 @@ pub fn main() !void {
                     camera.begin();
 
                     ship.handleMovement(dt);
-                    try ship.draw();
+                    try ship.draw(&particles);
 
                     // draw asteroids
                     asteroid_mod.draw(&asteroids, dt);

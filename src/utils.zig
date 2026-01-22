@@ -1,6 +1,7 @@
 const rl = @import("raylib");
 
 pub const MAX_BULLETS = 50;
+pub const MAX_SHIP_SPEED = 400;
 pub const MAX_MISSLES = 10;
 pub const MAX_ASTEROIDS = 60;
 pub const INIT_ASTEROIDS = 8;
