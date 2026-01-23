@@ -88,6 +88,7 @@ pub fn main() !void {
                     rl.drawText("Haha loser!", 600, 450, 20.0, .red);
                     gameover_timeout -= dt;
                 } else {
+                    gameover_timeout = GAMEOVER_TIMEOUT;
                     game_state = .title;
                 }
             },

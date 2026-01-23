@@ -45,6 +45,7 @@ pub const Ship = struct {
     reloading_time: f32,
     health: u8,
     hit_timer: f32,
+    death_timer: f32,
 
     pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
         const scale = 0.1;
@@ -62,6 +63,7 @@ pub const Ship = struct {
             .reloading_time = 0,
             .health = 100,
             .hit_timer = 0,
+            .death_timer = 0,
         };
     }
 
@@ -72,152 +74,170 @@ pub const Ship = struct {
     pub fn draw(self: *Ship, particles: *[MAX_PARTICLES]Particle) !void {
         if (self.health <= 0) {
             particles_mod.spawn(particles, self.position, .big_explosion);
-            return error.GameOver;
         }
 
-        const texture = self.texture;
+        if (self.health <= 0 and self.death_timer == 0) {
+            self.death_timer = 2.0;
+        }
 
-        const source = rl.Rectangle{
-            .x = 0,
-            .y = 0,
-            .width = @floatFromInt(texture.width),
-            .height = @floatFromInt(texture.height),
-        };
-
-        const scale: f32 = 0.05;
-
-        // destination rect (centered on ship position)
-        const dest = rl.Rectangle{
-            .x = self.position.x,
-            .y = self.position.y,
-            .width = @as(f32, @floatFromInt(texture.width)) * scale,
-            .height = @as(f32, @floatFromInt(texture.height)) * scale,
-        };
-
-        // origin point for rotation (center of sprite)
-        const origin = rl.Vector2{
-            .x = dest.width / 2.0,
-            .y = dest.height / 2.0,
-        };
-
-        if (self.thrusting or self.turbo_thrusting) {
-            const rads = std.math.degreesToRadians(self.rotation);
-            const cos_t = std.math.cos(rads);
-            const sin_t = std.math.sin(rads);
-
-            // Ship forward vector (x=cos, y=sin)
-            const forward = rl.Vector2{ .x = cos_t, .y = sin_t };
-
-            const speed = rl.Vector2.length(self.velocity);
-
-            // Tail position (behind center)
-            const offset = dest.width * 0.4;
-            const tail = rl.Vector2{
-                .x = self.position.x - forward.x * offset,
-                .y = self.position.y - forward.y * offset,
-            };
-            if (self.turbo_thrusting) {
-                particles_mod.spawn(particles, tail, .thrust_sparkles);
+        if (self.health <= 0) {
+            if (self.death_timer > 0) {
+                self.death_timer -= rl.getFrameTime();
+            } else {
+                self.death_timer = 0;
+                return error.GameOver;
             }
-
-            // Flame dimensions
-            const flicker = @as(f32, @floatFromInt(rl.getRandomValue(0, 10))) / 20.0; // 0.0 - 0.5
-            const flame_len = dest.width * (speed / MAX_SHIP_SPEED + flicker);
-            const flame_width = if (self.turbo_thrusting) dest.width * 0.4 else dest.width * 0.3;
-
-            // Flame tip
-            const tip = rl.Vector2{
-                .x = tail.x - forward.x * flame_len,
-                .y = tail.y - forward.y * flame_len,
-            };
-
-            // Flame base corners (perpendicular to forward)
-            const perp = rl.Vector2{ .x = -forward.y, .y = forward.x };
-            const p1 = rl.Vector2{
-                .x = tail.x + perp.x * flame_width * 0.5,
-                .y = tail.y + perp.y * flame_width * 0.5,
-            };
-            const p2 = rl.Vector2{
-                .x = tail.x - perp.x * flame_width * 0.5,
-                .y = tail.y - perp.y * flame_width * 0.5,
-            };
-
-            const t = std.math.clamp(speed / ACCELERATION, 0.0, 1.0);
-            const outer_color = utils.lerpColor(.red, .sky_blue, t);
-            // Draw outer flame
-            rl.drawTriangle(p1, p2, tip, outer_color);
-
-            // Inner flame
-            const p1_i = rl.Vector2{
-                .x = tail.x + perp.x * flame_width * 0.3,
-                .y = tail.y + perp.y * flame_width * 0.3,
-            };
-            const p2_i = rl.Vector2{
-                .x = tail.x - perp.x * flame_width * 0.3,
-                .y = tail.y - perp.y * flame_width * 0.3,
-            };
-            const tip_i = rl.Vector2{
-                .x = tail.x - forward.x * flame_len * 0.6,
-                .y = tail.y - forward.y * flame_len * 0.6,
-            };
-
-            const inner_color = utils.lerpColor(.yellow, .ray_white, t);
-            rl.drawTriangle(p1_i, p2_i, tip_i, inner_color);
         }
 
-        rl.drawTexturePro(
-            texture,
-            source,
-            dest,
-            origin,
-            self.rotation,
-            .white,
-        );
+        if (self.health > 0) {
+            const texture = self.texture;
 
-        var ammo_buf: [128]u8 = undefined;
-        const ammo = try std.fmt.bufPrintZ(&ammo_buf, "Missiles:{d}", .{self.missiles_ammo});
+            const source = rl.Rectangle{
+                .x = 0,
+                .y = 0,
+                .width = @floatFromInt(texture.width),
+                .height = @floatFromInt(texture.height),
+            };
 
-        // var reloading_buf: [128]u8 = undefined;
-        // const reloading_time = try std.fmt.bufPrintZ(&reloading_buf, "{d}", .{self.reloading_time});
+            const scale: f32 = 0.05;
 
-        const color: rl.Color = if (self.missiles_ammo == 0) .red else .green;
-        rl.drawText(ammo, SCREEN_WIDTH - 200, SCREEN_HEIGHT - 30, 20.0, color);
+            // destination rect (centered on ship position)
+            const dest = rl.Rectangle{
+                .x = self.position.x,
+                .y = self.position.y,
+                .width = @as(f32, @floatFromInt(texture.width)) * scale,
+                .height = @as(f32, @floatFromInt(texture.height)) * scale,
+            };
 
-        if (self.reloading_time > 0) {
-            rl.drawText(
-                "Reloading",
-                @intFromFloat(self.position.x),
-                @intFromFloat(self.position.y),
-                16.0,
-                .ray_white,
-            );
-        }
+            // origin point for rotation (center of sprite)
+            const origin = rl.Vector2{
+                .x = dest.width / 2.0,
+                .y = dest.height / 2.0,
+            };
 
-        if (self.hit_timer > 0) {
-            self.hit_timer -= rl.getFrameTime();
-            const blink_speed = 15.0;
-            const phase = @mod(self.hit_timer * blink_speed, 1.0);
-            if (phase > 0.5) {
-                const overlay_dest = rl.Rectangle{
-                    .width = dest.width,
-                    .height = dest.height,
-                    .x = self.position.x,
-                    .y = self.position.y,
+            if (self.thrusting or self.turbo_thrusting) {
+                const rads = std.math.degreesToRadians(self.rotation);
+                const cos_t = std.math.cos(rads);
+                const sin_t = std.math.sin(rads);
+
+                // Ship forward vector (x=cos, y=sin)
+                const forward = rl.Vector2{ .x = cos_t, .y = sin_t };
+
+                const speed = rl.Vector2.length(self.velocity);
+
+                // Tail position (behind center)
+                const offset = dest.width * 0.4;
+                const tail = rl.Vector2{
+                    .x = self.position.x - forward.x * offset,
+                    .y = self.position.y - forward.y * offset,
+                };
+                if (self.turbo_thrusting) {
+                    particles_mod.spawn(particles, tail, .thrust_sparkles);
+                }
+
+                // Flame dimensions
+                const flicker = @as(f32, @floatFromInt(rl.getRandomValue(0, 10))) / 20.0; // 0.0 - 0.5
+                const flame_len = dest.width * (speed / MAX_SHIP_SPEED + flicker);
+                const flame_width = if (self.turbo_thrusting) dest.width * 0.4 else dest.width * 0.3;
+
+                // Flame tip
+                const tip = rl.Vector2{
+                    .x = tail.x - forward.x * flame_len,
+                    .y = tail.y - forward.y * flame_len,
                 };
 
-                rl.drawTexturePro(
-                    texture,
-                    source,
-                    overlay_dest,
-                    origin,
-                    self.rotation,
-                    .{ .r = 255, .g = 0, .b = 0, .a = 150 },
+                // Flame base corners (perpendicular to forward)
+                const perp = rl.Vector2{ .x = -forward.y, .y = forward.x };
+                const p1 = rl.Vector2{
+                    .x = tail.x + perp.x * flame_width * 0.5,
+                    .y = tail.y + perp.y * flame_width * 0.5,
+                };
+                const p2 = rl.Vector2{
+                    .x = tail.x - perp.x * flame_width * 0.5,
+                    .y = tail.y - perp.y * flame_width * 0.5,
+                };
+
+                const t = std.math.clamp(speed / ACCELERATION, 0.0, 1.0);
+                const outer_color = utils.lerpColor(.red, .sky_blue, t);
+                // Draw outer flame
+                rl.drawTriangle(p1, p2, tip, outer_color);
+
+                // Inner flame
+                const p1_i = rl.Vector2{
+                    .x = tail.x + perp.x * flame_width * 0.3,
+                    .y = tail.y + perp.y * flame_width * 0.3,
+                };
+                const p2_i = rl.Vector2{
+                    .x = tail.x - perp.x * flame_width * 0.3,
+                    .y = tail.y - perp.y * flame_width * 0.3,
+                };
+                const tip_i = rl.Vector2{
+                    .x = tail.x - forward.x * flame_len * 0.6,
+                    .y = tail.y - forward.y * flame_len * 0.6,
+                };
+
+                const inner_color = utils.lerpColor(.yellow, .ray_white, t);
+                rl.drawTriangle(p1_i, p2_i, tip_i, inner_color);
+            }
+
+            rl.drawTexturePro(
+                texture,
+                source,
+                dest,
+                origin,
+                self.rotation,
+                .white,
+            );
+
+            var ammo_buf: [128]u8 = undefined;
+            const ammo = try std.fmt.bufPrintZ(&ammo_buf, "Missiles:{d}", .{self.missiles_ammo});
+
+            // var reloading_buf: [128]u8 = undefined;
+            // const reloading_time = try std.fmt.bufPrintZ(&reloading_buf, "{d}", .{self.reloading_time});
+
+            const color: rl.Color = if (self.missiles_ammo == 0) .red else .green;
+            rl.drawText(ammo, SCREEN_WIDTH - 200, SCREEN_HEIGHT - 30, 20.0, color);
+
+            if (self.reloading_time > 0) {
+                rl.drawText(
+                    "Reloading",
+                    @intFromFloat(self.position.x),
+                    @intFromFloat(self.position.y),
+                    16.0,
+                    .ray_white,
                 );
+            }
+
+            if (self.hit_timer > 0) {
+                self.hit_timer -= rl.getFrameTime();
+                const blink_speed = 15.0;
+                const phase = @mod(self.hit_timer * blink_speed, 1.0);
+                if (phase > 0.5) {
+                    const overlay_dest = rl.Rectangle{
+                        .width = dest.width,
+                        .height = dest.height,
+                        .x = self.position.x,
+                        .y = self.position.y,
+                    };
+
+                    rl.drawTexturePro(
+                        texture,
+                        source,
+                        overlay_dest,
+                        origin,
+                        self.rotation,
+                        .{ .r = 255, .g = 0, .b = 0, .a = 150 },
+                    );
+                }
             }
         }
     }
 
     pub fn handleMovement(self: *Ship, dt: f32) void {
+        if (self.health <= 0) {
+            return;
+        }
+
         self.thrusting = false;
         self.turbo_thrusting = false;
 
@@ -273,6 +293,10 @@ pub const Ship = struct {
         camera: *Camera,
         dt: f32,
     ) !void {
+        if (self.health <= 0) {
+            return;
+        }
+
         if (rl.isKeyPressed(.space) and rl.isKeyUp(.left_shift)) {
             // NOTE: shooting normal bullets
             blk: for (0..MAX_BULLETS) |i| {
