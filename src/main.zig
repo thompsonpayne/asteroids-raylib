@@ -94,7 +94,23 @@ pub fn main() !void {
                 }
             },
             .player_win => {
-                rl.drawText("Congrats. You've won! Press Enter to conitnue!", 600, 20, 20.0, .green);
+                const message = "Congrats. You've won! Press Enter to conitnue!";
+
+                const title_dim = rl.measureTextEx(
+                    try rl.getFontDefault(),
+                    message,
+                    40.0,
+                    2.0,
+                );
+
+                rl.drawTextEx(
+                    try rl.getFontDefault(),
+                    message,
+                    .{ .x = (SCREEN_WIDTH - title_dim.x) / 2.0, .y = (SCREEN_HEIGHT - title_dim.y) / 2.0 },
+                    40.0,
+                    2.0,
+                    .ray_white,
+                );
 
                 if (rl.isKeyPressed(.kp_enter) or rl.isKeyPressed(.enter)) {
                     game_state = .title;
@@ -119,7 +135,23 @@ pub fn main() !void {
                     asteroid_mod.draw(&asteroids, dt) catch |err| {
                         if (err == error.PlayerWin) {
                             // game_state = .player_win;
-                            rl.drawText("Congrats. You've won! Press Enter to conitnue!", 600, 20, 20.0, .green);
+                            const message = "Congrats. You've won! Press Enter to conitnue!";
+
+                            const title_dim = rl.measureTextEx(
+                                try rl.getFontDefault(),
+                                message,
+                                40.0,
+                                2.0,
+                            );
+
+                            rl.drawTextEx(
+                                try rl.getFontDefault(),
+                                message,
+                                .{ .x = (SCREEN_WIDTH - title_dim.x) / 2.0, .y = (SCREEN_HEIGHT - title_dim.y) / 2.0 },
+                                40.0,
+                                2.0,
+                                .green,
+                            );
 
                             if (rl.isKeyPressed(.kp_enter) or rl.isKeyPressed(.enter)) {
                                 game_state = .title;
