@@ -24,6 +24,7 @@ const SCREEN_HEIGHT = utils.SCREEN_HEIGHT;
 const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
 const ACCELERATION = utils.ACCELERATION;
+const GAMEOVER_TIMEOUT = 2.0;
 
 pub fn main() !void {
     var bullets: [MAX_BULLETS]Bullet = bullet_mod.init();
@@ -54,6 +55,7 @@ pub fn main() !void {
     defer ship.deinit();
 
     var print_buf: [1024]u8 = undefined;
+    var gameover_timeout: f32 = GAMEOVER_TIMEOUT;
 
     // NOTE: Game loop
     while (!rl.windowShouldClose()) {
@@ -67,13 +69,27 @@ pub fn main() !void {
                 const gs = title_screen.handleNavigate();
                 if (gs) |g| {
                     game_state = g;
+
+                    if (g == .playing) {
+                        ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
+                        bullets = bullet_mod.init();
+                        asteroids = asteroid_mod.init();
+                        particles = particles_mod.init();
+                    }
+
                     try title_screen.draw();
                 } else {
+                    // quit game
                     break;
                 }
             },
             .game_over => {
-                rl.drawText("Haha loser!", 600, 450, 20.0, .red);
+                if (gameover_timeout > 0) {
+                    rl.drawText("Haha loser!", 600, 450, 20.0, .red);
+                    gameover_timeout -= dt;
+                } else {
+                    game_state = .title;
+                }
             },
             .playing => {
                 camera.update(dt);
@@ -82,7 +98,13 @@ pub fn main() !void {
                 camera.begin();
                 {
                     ship.handleMovement(dt);
-                    try ship.draw(&particles);
+                    ship.draw(&particles) catch |err| {
+                        if (err == error.GameOver) {
+                            game_state = .game_over;
+                        } else {
+                            std.debug.print("error drawing ship: {}\n", .{err});
+                        }
+                    };
 
                     // draw asteroids
                     asteroid_mod.draw(&asteroids, dt);

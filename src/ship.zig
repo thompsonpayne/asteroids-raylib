@@ -70,6 +70,11 @@ pub const Ship = struct {
     }
 
     pub fn draw(self: *Ship, particles: *[MAX_PARTICLES]Particle) !void {
+        if (self.health <= 0) {
+            particles_mod.spawn(particles, self.position, .big_explosion);
+            return error.GameOver;
+        }
+
         const texture = self.texture;
 
         const source = rl.Rectangle{
@@ -393,8 +398,12 @@ pub const Ship = struct {
 
                 if (!asteroid.active) continue;
 
-                if (rl.checkCollisionCircles(bullet.position, 2.0, asteroid.position, asteroid.radius)) {
-                    // bullet hit asteroid
+                if (rl.checkCollisionCircles(
+                    bullet.position,
+                    2.0,
+                    asteroid.position,
+                    asteroid.radius,
+                )) {
 
                     // spawn text
                     try text_list.append(allocator, text_mod.Text{
@@ -410,7 +419,7 @@ pub const Ship = struct {
                         camera.trigger(5.0, 0.25);
                     } else if (bullet.type == .missile) {
                         particles_mod.spawn(particles, asteroid.position, .big_explosion);
-                        camera.trigger(15.0, 0.25);
+                        camera.trigger(20.0, 0.25);
                     }
 
                     bullet.active = false;

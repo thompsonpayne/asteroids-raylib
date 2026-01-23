@@ -42,12 +42,16 @@ pub const TitleScreen = struct {
         if (rl.isKeyPressed(.up) or rl.isKeyPressed(.w)) {
             if (self.current_index > 0) {
                 self.current_index -= 1;
+            } else {
+                self.current_index = LIST_MENU_ITEMS.len - 1;
             }
         }
 
         if (rl.isKeyPressed(.down) or rl.isKeyPressed(.s)) {
             if (self.current_index < LIST_MENU_ITEMS.len - 1) {
                 self.current_index += 1;
+            } else {
+                self.current_index = 0;
             }
         }
 
