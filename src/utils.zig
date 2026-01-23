@@ -18,6 +18,9 @@ pub const MAX_PARTICLES = 200;
 pub const SCREEN_WIDTH = 1280;
 pub const SCREEN_HEIGHT = 720;
 
+pub const AsteroidDrawError = error{PlayerWin};
+pub const ShipDrawError = error{Die};
+
 pub fn wrapObject(position: *rl.Vector2) void {
     const buffer: f32 = 20.0; // ~ship/asteroid size
 

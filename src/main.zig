@@ -67,6 +67,7 @@ pub fn main() !void {
         switch (game_state) {
             .title => {
                 const gs = title_screen.handleNavigate();
+
                 if (gs) |g| {
                     game_state = g;
 
@@ -92,6 +93,13 @@ pub fn main() !void {
                     game_state = .title;
                 }
             },
+            .player_win => {
+                rl.drawText("Congrats. You've won! Press Enter to conitnue!", 600, 20, 20.0, .green);
+
+                if (rl.isKeyPressed(.kp_enter) or rl.isKeyPressed(.enter)) {
+                    game_state = .title;
+                }
+            },
             .playing => {
                 camera.update(dt);
 
@@ -100,7 +108,7 @@ pub fn main() !void {
                 {
                     ship.handleMovement(dt);
                     ship.draw(&particles) catch |err| {
-                        if (err == error.GameOver) {
+                        if (err == error.Die) {
                             game_state = .game_over;
                         } else {
                             std.debug.print("error drawing ship: {}\n", .{err});
@@ -108,7 +116,17 @@ pub fn main() !void {
                     };
 
                     // draw asteroids
-                    asteroid_mod.draw(&asteroids, dt);
+                    asteroid_mod.draw(&asteroids, dt) catch |err| {
+                        if (err == error.PlayerWin) {
+                            // game_state = .player_win;
+                            rl.drawText("Congrats. You've won! Press Enter to conitnue!", 600, 20, 20.0, .green);
+
+                            if (rl.isKeyPressed(.kp_enter) or rl.isKeyPressed(.enter)) {
+                                game_state = .title;
+                            }
+                        }
+                    };
+
                     try asteroid_mod.handleCollisionWithExternal(
                         allocator,
                         &asteroids,

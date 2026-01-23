@@ -11,6 +11,7 @@ const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const DRAG = utils.DRAG;
 const INIT_ASTEROIDS = utils.INIT_ASTEROIDS;
 const MAX_PARTICLES = utils.MAX_PARTICLES;
+const AsteroidDrawError = utils.AsteroidDrawError;
 
 const SPREAD_DEGREE = 360.0;
 pub const Asteroid = struct {
@@ -61,7 +62,8 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
     }
 }
 
-pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
+pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void {
+    var inactive: u16 = 0;
     for (asteroids) |*a| {
         if (a.active) {
             const rads = a.rotation * (std.math.pi / 180.0);
@@ -81,7 +83,13 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) void {
             utils.wrapObject(&a.position);
 
             rl.drawCircleLinesV(a.position, a.radius, .white);
+        } else {
+            inactive += 1;
         }
+    }
+
+    if (inactive == asteroids.len) {
+        return error.PlayerWin;
     }
 }
 

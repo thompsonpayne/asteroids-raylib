@@ -26,6 +26,7 @@ const MAX_ASTEROIDS = utils.MAX_ASTEROIDS;
 const MAX_MISSLES = utils.MAX_MISSLES;
 const MAX_SHIP_SPEED = utils.MAX_SHIP_SPEED;
 const wrapObject = utils.wrapObject;
+const ShipDrawError = utils.ShipDrawError || std.fmt.BufPrintError;
 
 // --- CONSTANTS FOR BEHAVIOR ---
 const PHASE_1_DURATION = 0.4; // Seconds to curve/slow down
@@ -45,7 +46,7 @@ pub const Ship = struct {
     reloading_time: f32,
     health: u8,
     hit_timer: f32,
-    death_timer: f32,
+    gameover_timer: f32,
 
     pub fn init(position: rl.Vector2, texture: rl.Texture2D) Ship {
         const scale = 0.1;
@@ -63,7 +64,7 @@ pub const Ship = struct {
             .reloading_time = 0,
             .health = 100,
             .hit_timer = 0,
-            .death_timer = 0,
+            .gameover_timer = 0,
         };
     }
 
@@ -71,21 +72,21 @@ pub const Ship = struct {
         rl.unloadTexture(self.texture);
     }
 
-    pub fn draw(self: *Ship, particles: *[MAX_PARTICLES]Particle) !void {
+    pub fn draw(self: *Ship, particles: *[MAX_PARTICLES]Particle) ShipDrawError!void {
         if (self.health <= 0) {
             particles_mod.spawn(particles, self.position, .big_explosion);
         }
 
-        if (self.health <= 0 and self.death_timer == 0) {
-            self.death_timer = 2.0;
+        if (self.health <= 0 and self.gameover_timer == 0) {
+            self.gameover_timer = 2.0;
         }
 
         if (self.health <= 0) {
-            if (self.death_timer > 0) {
-                self.death_timer -= rl.getFrameTime();
+            if (self.gameover_timer > 0) {
+                self.gameover_timer -= rl.getFrameTime();
             } else {
-                self.death_timer = 0;
-                return error.GameOver;
+                self.gameover_timer = 0;
+                return error.Die;
             }
         }
 

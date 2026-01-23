@@ -10,6 +10,7 @@ pub const GameState = enum {
     game_over,
     title,
     playing,
+    player_win,
 };
 
 pub const TitleScreenItem = enum {
