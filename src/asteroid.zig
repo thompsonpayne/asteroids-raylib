@@ -22,18 +22,33 @@ pub const Asteroid = struct {
     radius: f32,
 };
 
-pub fn init() [MAX_ASTEROIDS]Asteroid {
+pub fn init(ship_position: rl.Vector2) [MAX_ASTEROIDS]Asteroid {
     var asteroids: [MAX_ASTEROIDS]Asteroid = undefined;
 
     for (0..MAX_ASTEROIDS) |i| {
         asteroids[i].active = false;
     }
 
-    for (0..INIT_ASTEROIDS) |_| {
-        const rand_x = @as(f32, @floatFromInt(rl.getRandomValue(0, 800)));
-        const rand_y = @as(f32, @floatFromInt(rl.getRandomValue(0, 600)));
+    const spawn_radius: f32 = 50;
+    const buffer: f32 = 60;
+    const min_distance: f32 = spawn_radius + buffer;
+    const min_distance_sq: f32 = min_distance * min_distance;
 
-        spawn(&asteroids, .{ .x = rand_x, .y = rand_y }, 50.0);
+    for (0..INIT_ASTEROIDS) |_| {
+        var pos: rl.Vector2 = undefined;
+
+        while (true) {
+            const rand_x = @as(f32, @floatFromInt(rl.getRandomValue(0, 800)));
+            const rand_y = @as(f32, @floatFromInt(rl.getRandomValue(0, 600)));
+            pos = .{ .x = rand_x, .y = rand_y };
+
+            const delta = rl.Vector2.subtract(pos, ship_position);
+            const dist_sq = delta.x * delta.x + delta.y * delta.y;
+
+            if (dist_sq >= min_distance_sq) break;
+        }
+
+        spawn(&asteroids, pos, spawn_radius);
     }
 
     return asteroids;

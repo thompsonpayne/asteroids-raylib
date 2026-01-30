@@ -28,7 +28,6 @@ const GAMEOVER_TIMEOUT = 2.0;
 
 pub fn main() !void {
     var bullets: [MAX_BULLETS]Bullet = bullet_mod.init();
-    var asteroids: [MAX_ASTEROIDS]Asteroid = asteroid_mod.init();
     var particles: [MAX_PARTICLES]Particle = particles_mod.init();
     var game_state: GameState = .title;
     var title_screen = TitleScreen.init();
@@ -54,6 +53,8 @@ pub fn main() !void {
     var ship: Ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
     defer ship.deinit();
 
+    var asteroids: [MAX_ASTEROIDS]Asteroid = asteroid_mod.init(ship.position);
+
     var print_buf: [1024]u8 = undefined;
     var gameover_timeout: f32 = GAMEOVER_TIMEOUT;
 
@@ -74,7 +75,7 @@ pub fn main() !void {
                     if (g == .playing) {
                         ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
                         bullets = bullet_mod.init();
-                        asteroids = asteroid_mod.init();
+                        asteroids = asteroid_mod.init(ship.position);
                         particles = particles_mod.init();
                     }
 
@@ -86,7 +87,23 @@ pub fn main() !void {
             },
             .game_over => {
                 if (gameover_timeout > 0) {
-                    rl.drawText("Haha loser!", 600, 450, 20.0, .red);
+                    const message = "Haha Loser!";
+
+                    const title_dim = rl.measureTextEx(
+                        try rl.getFontDefault(),
+                        message,
+                        40.0,
+                        2.0,
+                    );
+
+                    rl.drawTextEx(
+                        try rl.getFontDefault(),
+                        message,
+                        .{ .x = (SCREEN_WIDTH - title_dim.x) / 2.0, .y = (SCREEN_HEIGHT - title_dim.y) / 2.0 },
+                        40.0,
+                        2.0,
+                        .red,
+                    );
                     gameover_timeout -= dt;
                 } else {
                     gameover_timeout = GAMEOVER_TIMEOUT;
@@ -134,6 +151,7 @@ pub fn main() !void {
                     // draw asteroids
                     asteroid_mod.draw(&asteroids, dt) catch |err| {
                         if (err == error.PlayerWin) {
+
                             // game_state = .player_win;
                             const message = "Congrats. You've won! Press Enter to conitnue!";
 
