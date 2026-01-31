@@ -114,6 +114,7 @@ pub fn handleCollisionWithExternal(
     particles: *[MAX_PARTICLES]Particle,
     text_list: *std.ArrayList(text_mod.Text),
 ) !void {
+    // 2 loops for checking asteroids against each other and we use shared asteroid array so ...
     for (0..MAX_ASTEROIDS - 1) |i| {
         var a1 = &asteroids[i];
         if (!a1.active) continue;
@@ -165,7 +166,7 @@ pub fn handleCollisionWithExternal(
 
         // collision from big explosions particles
         for (particles) |p| {
-            if (p.particle_type != .big_explosion or !p.active or p.radius == null) continue;
+            if (p.particle_type != .big_explosion or !p.active or p.radius == null or p.size < 15.0) continue;
 
             if (rl.checkCollisionCircles(a1.position, a1.radius, p.position, p.radius.?)) {
                 try text_list.append(allocator, text_mod.Text{
