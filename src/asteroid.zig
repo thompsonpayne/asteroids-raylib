@@ -21,6 +21,9 @@ const ASTEROID_POINTS: usize = 12;
 const MIN_RADIUS_FACTOR: f32 = 0.7;
 const MAX_RADIUS_FACTOR: f32 = 1.2;
 
+const SPAWN_RADIUS: f32 = 50;
+const BUFFER: f32 = 60;
+
 pub const Asteroid = struct {
     active: bool,
     position: rl.Vector2,
@@ -45,9 +48,7 @@ pub fn init(ship_position: rl.Vector2) [MAX_ASTEROIDS]Asteroid {
         asteroids[i].health = 100.0;
     }
 
-    const spawn_radius: f32 = 50;
-    const buffer: f32 = 60;
-    const min_distance: f32 = spawn_radius + buffer;
+    const min_distance: f32 = SPAWN_RADIUS + BUFFER;
     const min_distance_sq: f32 = min_distance * min_distance;
 
     for (0..INIT_ASTEROIDS) |_| {
@@ -64,7 +65,7 @@ pub fn init(ship_position: rl.Vector2) [MAX_ASTEROIDS]Asteroid {
             if (dist_sq >= min_distance_sq) break;
         }
 
-        spawn(&asteroids, pos, spawn_radius);
+        spawn(&asteroids, pos, SPAWN_RADIUS);
     }
 
     return asteroids;
@@ -76,8 +77,14 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
         var a = &asteroids[i];
         if (!a.active) {
             a.active = true;
-            a.health = 100.0;
             a.position = pos;
+
+            a.health = switch (@as(usize, @intFromFloat(size))) {
+                0...10 => 20,
+                11...20 => 40,
+                21...30 => 60,
+                else => 100,
+            };
             a.radius = size;
 
             const angle_step = std.math.tau / @as(f32, ASTEROID_POINTS);
@@ -156,19 +163,19 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
                 rl.drawCircleV(a.position, a.radius, flash_color);
             }
 
-            var buf: [128]u8 = undefined;
-            const health = try std.fmt.bufPrintZ(
-                &buf,
-                "health: {d}\n radius: {d}",
-                .{ a.health, a.radius },
-            );
-            rl.drawText(
-                health,
-                @as(i32, @intFromFloat(a.position.x)),
-                @as(i32, @intFromFloat(a.position.y)),
-                14.0,
-                .white,
-            );
+            // var buf: [128]u8 = undefined;
+            // const health = try std.fmt.bufPrintZ(
+            //     &buf,
+            //     "health: {d}\n radius: {d}",
+            //     .{ a.health, a.radius },
+            // );
+            // rl.drawText(
+            //     health,
+            //     @as(i32, @intFromFloat(a.position.x)),
+            //     @as(i32, @intFromFloat(a.position.y)),
+            //     14.0,
+            //     .white,
+            // );
         } else {
             inactive += 1;
         }
