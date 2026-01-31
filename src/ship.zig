@@ -444,7 +444,7 @@ pub const Ship = struct {
                         camera.trigger(5.0, 0.25);
                     } else if (bullet.type == .missile) {
                         particles_mod.spawn(particles, asteroid.position, .big_explosion);
-                        camera.trigger(20.0, 0.25);
+                        camera.trigger(20.0, 0.65);
                     }
 
                     bullet.active = false;
@@ -476,7 +476,7 @@ pub const Ship = struct {
                 if (b.type == .normal) {
                     rl.drawCircleV(b.position, 2.0, .ray_white);
                 } else if (b.type == .missile) {
-                    rl.drawCircleV(b.position, 4.0, .yellow);
+                    rl.drawCircleV(b.position, 6.0, .yellow);
                 }
             }
         }
