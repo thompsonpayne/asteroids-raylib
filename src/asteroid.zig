@@ -14,12 +14,21 @@ const MAX_PARTICLES = utils.MAX_PARTICLES;
 const AsteroidDrawError = utils.AsteroidDrawError;
 
 const SPREAD_DEGREE = 360.0;
+const HIT_FLASH_DURATION: f32 = 0.25;
+const HIT_FLASH_SPEED: f32 = 10.0;
 pub const Asteroid = struct {
     active: bool,
     position: rl.Vector2,
     velocity: rl.Vector2,
     rotation: f32,
     radius: f32,
+    health: f32,
+    hit_timer: f32,
+
+    pub fn takeDamage(self: *Asteroid, damage: f32) void {
+        self.health -= damage;
+        self.hit_timer = HIT_FLASH_DURATION;
+    }
 };
 
 pub fn init(ship_position: rl.Vector2) [MAX_ASTEROIDS]Asteroid {
@@ -27,6 +36,7 @@ pub fn init(ship_position: rl.Vector2) [MAX_ASTEROIDS]Asteroid {
 
     for (0..MAX_ASTEROIDS) |i| {
         asteroids[i].active = false;
+        asteroids[i].health = 100.0;
     }
 
     const spawn_radius: f32 = 50;
@@ -98,6 +108,19 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
             utils.wrapObject(&a.position);
 
             rl.drawCircleLinesV(a.position, a.radius, .white);
+            if (a.hit_timer > 0) {
+                a.hit_timer = @max(0.0, a.hit_timer - dt);
+                const t = a.hit_timer / HIT_FLASH_DURATION;
+                const pulse = (std.math.sin((1.0 - t) * std.math.tau * HIT_FLASH_SPEED) * 0.5) + 0.5;
+                const alpha = (0.25 + 0.75 * pulse) * t;
+                const flash_color = rl.Color{
+                    .r = 255,
+                    .g = 80,
+                    .b = 80,
+                    .a = @intFromFloat(alpha * 255.0),
+                };
+                rl.drawCircleV(a.position, a.radius, flash_color);
+            }
         } else {
             inactive += 1;
         }

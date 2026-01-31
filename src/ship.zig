@@ -28,6 +28,7 @@ const MAX_SHIP_SPEED = utils.MAX_SHIP_SPEED;
 const wrapObject = utils.wrapObject;
 const ShipDrawError = utils.ShipDrawError || std.fmt.BufPrintError;
 
+const SHIP_SCALE: f32 = 0.05;
 // --- CONSTANTS FOR BEHAVIOR ---
 const PHASE_1_DURATION = 0.4; // Seconds to curve/slow down
 const MISSILE_TURN_RATE = 90.0; // How fast it curves initially
@@ -100,14 +101,12 @@ pub const Ship = struct {
                 .height = @floatFromInt(texture.height),
             };
 
-            const scale: f32 = 0.05;
-
             // destination rect (centered on ship position)
             const dest = rl.Rectangle{
                 .x = self.position.x,
                 .y = self.position.y,
-                .width = @as(f32, @floatFromInt(texture.width)) * scale,
-                .height = @as(f32, @floatFromInt(texture.height)) * scale,
+                .width = @as(f32, @floatFromInt(texture.width)) * SHIP_SCALE,
+                .height = @as(f32, @floatFromInt(texture.height)) * SHIP_SCALE,
             };
 
             // origin point for rotation (center of sprite)
@@ -209,6 +208,7 @@ pub const Ship = struct {
                 );
             }
 
+            // hit by enemies (asteroids)
             if (self.hit_timer > 0) {
                 self.hit_timer -= rl.getFrameTime();
                 const blink_speed = 15.0;
@@ -449,21 +449,27 @@ pub const Ship = struct {
 
                     bullet.active = false;
                     bullet.snapshot_rotation = 0;
-                    asteroid.active = false;
 
-                    // if normal bullet, split the asteroid, if not (missile), destroy it
+                    // if normal bullet, split the asteroid, if missile, destroy asteroid
                     if (asteroid.radius > 20.0 and bullet.type == .normal) {
                         const new_size = asteroid.radius / 2.0;
 
-                        for (0..3) |_| {
-                            asteroid_mod.spawn(
-                                asteroids,
-                                .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
-                                new_size,
-                            );
+                        if (asteroid.health > 0) {
+                            asteroid.takeDamage(20.0);
+                        } else {
+                            asteroid.active = false;
+                            for (0..3) |_| {
+                                asteroid_mod.spawn(
+                                    asteroids,
+                                    .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
+                                    new_size,
+                                );
+                            }
                         }
 
                         particles_mod.spawn(particles, asteroid.position, .debris);
+                    } else {
+                        asteroid.active = false;
                     }
 
                     break :blk;
