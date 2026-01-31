@@ -16,6 +16,11 @@ const AsteroidDrawError = utils.AsteroidDrawError;
 const SPREAD_DEGREE = 360.0;
 const HIT_FLASH_DURATION: f32 = 0.25;
 const HIT_FLASH_SPEED: f32 = 10.0;
+
+const ASTEROID_POINTS: usize = 12;
+const MIN_RADIUS_FACTOR: f32 = 0.7;
+const MAX_RADIUS_FACTOR: f32 = 1.2;
+
 pub const Asteroid = struct {
     active: bool,
     position: rl.Vector2,
@@ -24,6 +29,7 @@ pub const Asteroid = struct {
     radius: f32,
     health: f32,
     hit_timer: f32,
+    points: [ASTEROID_POINTS]rl.Vector2,
 
     pub fn takeDamage(self: *Asteroid, damage: f32) void {
         self.health -= damage;
@@ -70,8 +76,21 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
         var a = &asteroids[i];
         if (!a.active) {
             a.active = true;
+            a.health = 100.0;
             a.position = pos;
             a.radius = size;
+
+            const angle_step = std.math.tau / @as(f32, ASTEROID_POINTS);
+            for (0..ASTEROID_POINTS) |j| {
+                const angle = angle_step * @as(f32, @floatFromInt(j));
+                const radius_factor = MIN_RADIUS_FACTOR + rand.float(f32) * (MAX_RADIUS_FACTOR - MIN_RADIUS_FACTOR);
+                const r = size * radius_factor;
+
+                a.points[j] = .{
+                    .x = std.math.cos(angle) * r,
+                    .y = std.math.sin(angle) * r,
+                };
+            }
 
             const rand_factor = rand.float(f32) * 2.0 - 1.0; // rand from -1 to 1
             const rand_offset = rand_factor * SPREAD_DEGREE;
@@ -107,7 +126,22 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
 
             utils.wrapObject(&a.position);
 
-            rl.drawCircleLinesV(a.position, a.radius, .white);
+            const cos_r = std.math.cos(rads);
+            const sin_r = std.math.sin(rads);
+            var prev_world = rl.Vector2{
+                .x = a.position.x + (a.points[ASTEROID_POINTS - 2].x * cos_r - a.points[ASTEROID_POINTS - 1].y * sin_r),
+                .y = a.position.y + (a.points[ASTEROID_POINTS - 1].x * sin_r + a.points[ASTEROID_POINTS - 1].y * cos_r),
+            };
+
+            for (a.points) |p| {
+                const world = rl.Vector2{
+                    .x = a.position.x + (p.x * cos_r - p.y * sin_r),
+                    .y = a.position.y + (p.x * sin_r + p.y * cos_r),
+                };
+                rl.drawLineV(prev_world, world, .white);
+                prev_world = world;
+            }
+
             if (a.hit_timer > 0) {
                 a.hit_timer = @max(0.0, a.hit_timer - dt);
                 const t = a.hit_timer / HIT_FLASH_DURATION;
@@ -121,6 +155,20 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
                 };
                 rl.drawCircleV(a.position, a.radius, flash_color);
             }
+
+            var buf: [128]u8 = undefined;
+            const health = try std.fmt.bufPrintZ(
+                &buf,
+                "health: {d}\n radius: {d}",
+                .{ a.health, a.radius },
+            );
+            rl.drawText(
+                health,
+                @as(i32, @intFromFloat(a.position.x)),
+                @as(i32, @intFromFloat(a.position.y)),
+                14.0,
+                .white,
+            );
         } else {
             inactive += 1;
         }

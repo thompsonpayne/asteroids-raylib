@@ -417,64 +417,65 @@ pub const Ship = struct {
                 }
             }
 
-            // NOTE: asteroids collision with bullet
-            for (0..MAX_ASTEROIDS) |a_idx| {
-                var asteroid = &asteroids[a_idx];
+            if (bullet.active) {
+                for (0..MAX_ASTEROIDS) |a_idx| {
+                    var asteroid = &asteroids[a_idx];
 
-                if (!asteroid.active) continue;
+                    if (!asteroid.active) continue;
 
-                if (rl.checkCollisionCircles(
-                    bullet.position,
-                    2.0,
-                    asteroid.position,
-                    asteroid.radius,
-                )) {
+                    if (rl.checkCollisionCircles(
+                        bullet.position,
+                        2.0,
+                        asteroid.position,
+                        asteroid.radius,
+                    )) {
 
-                    // spawn text
-                    try text_list.append(allocator, text_mod.Text{
-                        .active = true,
-                        .content = "Hell yeah!",
-                        .life_time = 1.0,
-                        .x = @intFromFloat(asteroid.position.x),
-                        .y = @intFromFloat(asteroid.position.y),
-                    });
+                        // spawn text
+                        try text_list.append(allocator, text_mod.Text{
+                            .active = true,
+                            .content = "Hell yeah!",
+                            .life_time = 1.0,
+                            .x = @intFromFloat(asteroid.position.x),
+                            .y = @intFromFloat(asteroid.position.y),
+                        });
 
-                    if (bullet.type == .normal) {
-                        particles_mod.spawn(particles, asteroid.position, .explosion);
-                        camera.trigger(5.0, 0.25);
-                    } else if (bullet.type == .missile) {
-                        particles_mod.spawn(particles, asteroid.position, .big_explosion);
-                        camera.trigger(20.0, 0.65);
-                    }
-
-                    bullet.active = false;
-                    bullet.snapshot_rotation = 0;
-
-                    // if normal bullet, split the asteroid, if missile, destroy asteroid
-                    if (asteroid.radius > 20.0 and bullet.type == .normal) {
-                        const new_size = asteroid.radius / 2.0;
-
-                        if (asteroid.health > 0) {
-                            asteroid.takeDamage(20.0);
-                        } else {
-                            asteroid.active = false;
-                            for (0..3) |_| {
-                                asteroid_mod.spawn(
-                                    asteroids,
-                                    .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
-                                    new_size,
-                                );
-                            }
+                        if (bullet.type == .normal) {
+                            particles_mod.spawn(particles, asteroid.position, .explosion);
+                            camera.trigger(5.0, 0.25);
+                        } else if (bullet.type == .missile) {
+                            particles_mod.spawn(particles, asteroid.position, .big_explosion);
+                            camera.trigger(20.0, 0.65);
                         }
 
-                        particles_mod.spawn(particles, asteroid.position, .debris);
-                    } else {
-                        asteroid.active = false;
-                    }
+                        bullet.active = false;
+                        bullet.snapshot_rotation = 0;
 
-                    break :blk;
+                        // if normal bullet, split the asteroid, if missile, destroy asteroid
+                        if (asteroid.radius > 20.0 and bullet.type == .normal) {
+                            if (asteroid.health > 0) {
+                                asteroid.takeDamage(20.0);
+                            } else {
+                                const new_size = asteroid.radius / 2.0;
+                                asteroid.active = false;
+                                for (0..3) |_| {
+                                    asteroid_mod.spawn(
+                                        asteroids,
+                                        .{ .x = asteroid.position.x - 20, .y = asteroid.position.y - 20 },
+                                        new_size,
+                                    );
+                                }
+                            }
+
+                            particles_mod.spawn(particles, asteroid.position, .debris);
+                        } else {
+                            asteroid.active = false;
+                        }
+
+                        break :blk;
+                    }
                 }
             }
+            // NOTE: asteroids collision with bullet
         }
 
         for (bullets) |b| {
