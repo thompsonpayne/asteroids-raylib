@@ -456,6 +456,9 @@ pub const Ship = struct {
                                 asteroid.takeDamage(20.0);
                             } else {
                                 const new_size = asteroid.radius / 2.0;
+                                particles_mod.spawn(particles, asteroid.position, .big_flash);
+                                particles_mod.spawn(particles, asteroid.position, .shockwave);
+                                particles_mod.spawn(particles, asteroid.position, .sparks);
                                 asteroid.active = false;
                                 for (0..3) |_| {
                                     asteroid_mod.spawn(

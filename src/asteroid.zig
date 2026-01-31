@@ -29,6 +29,7 @@ pub const Asteroid = struct {
     position: rl.Vector2,
     velocity: rl.Vector2,
     rotation: f32,
+    rotation_speed: f32,
     radius: f32,
     health: f32,
     hit_timer: f32,
@@ -103,6 +104,8 @@ pub fn spawn(asteroids: *[MAX_ASTEROIDS]Asteroid, pos: rl.Vector2, size: f32) vo
             const rand_offset = rand_factor * SPREAD_DEGREE;
 
             a.rotation = rand_offset;
+            const rotation_speed_rand = rand.float(f32) * 2.0 - 1.0;
+            a.rotation_speed = rotation_speed_rand * 90.0;
 
             const vx = @as(f32, @floatFromInt(rl.getRandomValue(-100, 100)));
             const vy = @as(f32, @floatFromInt(rl.getRandomValue(-100, 100)));
@@ -128,6 +131,8 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
             a.position.x += a.velocity.x * dt;
             a.position.y += a.velocity.y * dt;
 
+            a.rotation += a.rotation_speed * dt;
+
             a.velocity.x *= DRAG;
             a.velocity.y *= DRAG;
 
@@ -136,7 +141,7 @@ pub fn draw(asteroids: *[MAX_ASTEROIDS]Asteroid, dt: f32) AsteroidDrawError!void
             const cos_r = std.math.cos(rads);
             const sin_r = std.math.sin(rads);
             var prev_world = rl.Vector2{
-                .x = a.position.x + (a.points[ASTEROID_POINTS - 2].x * cos_r - a.points[ASTEROID_POINTS - 1].y * sin_r),
+                .x = a.position.x + (a.points[ASTEROID_POINTS - 1].x * cos_r - a.points[ASTEROID_POINTS - 1].y * sin_r),
                 .y = a.position.y + (a.points[ASTEROID_POINTS - 1].x * sin_r + a.points[ASTEROID_POINTS - 1].y * cos_r),
             };
 

@@ -1,3 +1,4 @@
+const std = @import("std");
 const rl = @import("raylib");
 
 pub const MAX_BULLETS = 50;
@@ -18,7 +19,7 @@ pub const MAX_PARTICLES = 200;
 pub const SCREEN_WIDTH = 1280;
 pub const SCREEN_HEIGHT = 720;
 
-pub const AsteroidDrawError = error{PlayerWin} || error{NoSpaceLeft};
+pub const AsteroidDrawError = error{PlayerWin} || std.fmt.BufPrintError;
 pub const ShipDrawError = error{Die};
 
 pub fn wrapObject(position: *rl.Vector2) void {
