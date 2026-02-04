@@ -32,6 +32,7 @@ pub fn main() !void {
     var game_state: GameState = .title;
     var title_screen = TitleScreen.init();
     var camera = Camera.init();
+    var score: u64 = 0;
 
     var gpa = std.heap.DebugAllocator(.{}){};
     defer {
@@ -55,7 +56,8 @@ pub fn main() !void {
 
     var asteroids: [MAX_ASTEROIDS]Asteroid = asteroid_mod.init(ship.position);
 
-    var print_buf: [1024]u8 = undefined;
+    var health_buf: [128]u8 = undefined;
+    var score_buf: [1024]u8 = undefined;
     var gameover_timeout: f32 = GAMEOVER_TIMEOUT;
 
     // NOTE: Game loop
@@ -73,10 +75,12 @@ pub fn main() !void {
                     game_state = g;
 
                     if (g == .playing) {
+                        // NOTE: when player press Start, init game state
                         ship = .init(.{ .x = SCREEN_WIDTH / 2.0, .y = SCREEN_HEIGHT / 2.0 }, ship_texture);
                         bullets = bullet_mod.init();
                         asteroids = asteroid_mod.init(ship.position);
                         particles = particles_mod.init();
+                        score = 0;
                     }
 
                     try title_screen.draw();
@@ -86,6 +90,7 @@ pub fn main() !void {
                 }
             },
             .game_over => {
+                score = 0;
                 if (gameover_timeout > 0) {
                     const message = "Haha Loser!";
 
@@ -111,6 +116,9 @@ pub fn main() !void {
                 }
             },
             .player_win => {
+                // TODO: persist the score to file -> highest score?
+
+                score = 0;
                 const message = "Congrats. You've won! Press Enter to conitnue!";
 
                 const title_dim = rl.measureTextEx(
@@ -182,6 +190,7 @@ pub fn main() !void {
                         &asteroids,
                         &particles,
                         &text_list,
+                        &score,
                     );
 
                     try ship.handleShooting(
@@ -191,6 +200,7 @@ pub fn main() !void {
                         &particles,
                         &text_list,
                         &camera,
+                        &score,
                         dt,
                     );
                     ship.handleAsteroidCollision(&asteroids, &particles, &camera);
@@ -227,7 +237,7 @@ pub fn main() !void {
                 // NOTE: Health display
                 {
                     const health_text = try std.fmt.bufPrintZ(
-                        &print_buf,
+                        &health_buf,
                         "Health: {d}%\n",
                         .{ship.health},
                     );
@@ -240,6 +250,10 @@ pub fn main() !void {
                     };
                     rl.drawText(health_text, 10, SCREEN_HEIGHT - 20, 20.0, color);
                 }
+
+                // NOTE: score display
+                const score_text = try std.fmt.bufPrintZ(&score_buf, "Score: {d}\n", .{score});
+                rl.drawText(score_text, SCREEN_WIDTH / 2, 20, 20.0, .beige);
             },
         }
 

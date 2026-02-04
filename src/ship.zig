@@ -292,6 +292,7 @@ pub const Ship = struct {
         particles: *[MAX_PARTICLES]Particle,
         text_list: *std.ArrayList(text_mod.Text),
         camera: *Camera,
+        score: *u64,
         dt: f32,
     ) !void {
         if (self.health <= 0) {
@@ -429,6 +430,7 @@ pub const Ship = struct {
                         asteroid.position,
                         asteroid.radius,
                     )) {
+                        // NOTE: bullet hit
 
                         // spawn text
                         try text_list.append(allocator, text_mod.Text{
@@ -455,6 +457,9 @@ pub const Ship = struct {
                             if (asteroid.health > 0) {
                                 asteroid.takeDamage(20.0);
                             } else {
+                                // NOTE: Asteroid destroyed
+
+                                score.* += 50; // huge asteroid would give higher score
                                 const new_size = asteroid.radius / 2.0;
                                 particles_mod.spawn(particles, asteroid.position, .big_flash);
                                 particles_mod.spawn(particles, asteroid.position, .shockwave);
@@ -471,6 +476,7 @@ pub const Ship = struct {
 
                             particles_mod.spawn(particles, asteroid.position, .debris);
                         } else {
+                            score.* += 10; // creep asteroid, gets minimal score
                             asteroid.active = false;
                         }
 

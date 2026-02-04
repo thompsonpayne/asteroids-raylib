@@ -196,6 +196,7 @@ pub fn handleCollisionWithExternal(
     asteroids: *[MAX_ASTEROIDS]Asteroid,
     particles: *[MAX_PARTICLES]Particle,
     text_list: *std.ArrayList(text_mod.Text),
+    score: *u64,
 ) !void {
     // 2 loops for checking asteroids against each other and we use shared asteroid array so ...
     for (0..MAX_ASTEROIDS - 1) |i| {
@@ -252,20 +253,21 @@ pub fn handleCollisionWithExternal(
             if (p.particle_type != .big_explosion or !p.active or p.radius == null or p.size < 15.0) continue;
 
             if (rl.checkCollisionCircles(a1.position, a1.radius, p.position, p.radius.?)) {
+                // NOTE: asteroid destroyed
+
                 try text_list.append(allocator, text_mod.Text{
                     .active = true,
-                    .content = "Hell yeah!",
+                    .content = "Collateral",
                     .life_time = 1.0,
                     .x = @intFromFloat(a1.position.x),
                     .y = @intFromFloat(a1.position.y),
                 });
 
                 particles_mod.spawn(particles, a1.position, .explosion);
-
                 a1.active = false;
 
-                // if normal bullet, split the a1, if not (missile), destroy it
                 if (a1.radius > 20.0) {
+                    score.* += 50;
                     const new_size = a1.radius / 2.0;
 
                     for (0..3) |_| {
@@ -277,6 +279,8 @@ pub fn handleCollisionWithExternal(
                     }
 
                     particles_mod.spawn(particles, a1.position, .debris);
+                } else {
+                    score.* += 10;
                 }
             }
         }
